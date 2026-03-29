@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/check-temps",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/check-certs",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/check-corrective",
+      "schedule": "0 */2 * * *"
+    }
+  ]
+}
