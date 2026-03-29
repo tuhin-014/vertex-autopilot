@@ -1,7 +1,4 @@
 {
-  "deploymentProtection": {
-    "standard": "none"
-  },
   "crons": [
     {
       "path": "/api/cron/check-temps",
