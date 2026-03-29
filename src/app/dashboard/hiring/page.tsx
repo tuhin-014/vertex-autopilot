@@ -75,7 +75,7 @@ export default async function HiringPage() {
       </div>
 
       {/* Pipeline Funnel */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { label: "Applied", count: applied, color: "blue" },
           { label: "Screened", count: screened, color: "purple" },
@@ -91,7 +91,7 @@ export default async function HiringPage() {
       </div>
 
       {/* Two columns: Staffing Health + Open Jobs */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Staffing Health */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h2 className="font-bold text-lg mb-4">📊 Staffing Health</h2>

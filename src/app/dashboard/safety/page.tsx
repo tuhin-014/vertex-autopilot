@@ -71,7 +71,7 @@ export default async function SafetyPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
           <div className={`text-3xl font-bold ${complianceRate >= 90 ? "text-green-400" : complianceRate >= 70 ? "text-yellow-400" : "text-red-400"}`}>
             {complianceRate}%
@@ -98,7 +98,7 @@ export default async function SafetyPage() {
       </div>
 
       {/* Two columns: Certs + Corrective Actions */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Expiring Certs */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h2 className="font-bold text-lg mb-4">📋 Certifications ({(expiringCerts?.length || 0)} flagged)</h2>
@@ -195,7 +195,7 @@ export default async function SafetyPage() {
       {/* Store Safety Scores */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <h2 className="font-bold text-lg mb-4">📍 Store Safety Overview</h2>
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {locations?.map((loc) => {
             const score = loc.last_inspection_score || Math.floor(85 + Math.random() * 15);
             const locEvents = events?.filter((e) => e.location_id === loc.id) || [];

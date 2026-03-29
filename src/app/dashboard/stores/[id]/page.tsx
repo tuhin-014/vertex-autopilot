@@ -69,7 +69,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 text-center">
           <div className="text-xl font-bold text-blue-400">{employees?.length || 0}</div>
           <div className="text-xs text-gray-500">Employees</div>
@@ -97,7 +97,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Staffing + Employees */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h2 className="font-bold text-lg mb-4">👥 Staffing</h2>
           <div className="space-y-3">
@@ -151,7 +151,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <h2 className="font-bold text-lg mb-4">🌡️ Recent Temp Logs</h2>
         {tempLogs && tempLogs.length > 0 ? (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {tempLogs.slice(0, 12).map((log) => {
               const isCold = (log.equipment || "").toLowerCase().includes("cooler") || (log.equipment || "").toLowerCase().includes("freezer");
               const isViolation = isCold ? log.temperature > 41 : log.temperature < 135;

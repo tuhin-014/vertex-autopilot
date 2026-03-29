@@ -1,5 +1,6 @@
 import { createServerComponentClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import AutoRefresh from "./components/AutoRefresh";
 
 export default async function CommandCenter() {
   const supabase = await createServerComponentClient();
@@ -66,6 +67,14 @@ export default async function CommandCenter() {
           <p className="text-gray-400">IHOP Southeast Region • {locationCount} Stores</p>
         </div>
         <div className="flex items-center gap-3">
+          <AutoRefresh intervalMs={30000} />
+          <a
+            href="/api/demo/simulate"
+            target="_blank"
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition"
+          >
+            🎬 Demo
+          </a>
           <a
             href="/api/agents/run-all"
             target="_blank"
@@ -80,7 +89,7 @@ export default async function CommandCenter() {
       </div>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-red-600/10 border border-red-600/30 rounded-xl p-4 text-center">
           <div className="text-3xl font-bold text-red-400">{criticalEvents}</div>
           <div className="text-sm text-gray-400 mt-1">Critical</div>
@@ -104,7 +113,7 @@ export default async function CommandCenter() {
       </div>
 
       {/* Two-column: Safety + Hiring */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Link href="/dashboard/safety" className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-blue-600/50 transition">
           <h2 className="font-bold text-lg mb-4">🛡️ Food Safety</h2>
           <div className="space-y-3 text-sm">
