@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { handleTextToApply } from "@/agents/hiring";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Twilio webhook for incoming SMS (text-to-apply)
 export async function POST(request: Request) {
   try {
+    // Rate limit: 10 messages per minute per phone number
+    const formDataClone = await request.clone().formData();
+    const fromNum = formDataClone.get("From") as string || "unknown";
+    const { allowed } = rateLimit(`sms:${fromNum}`, 10, 60000);
+    if (!allowed) {
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Too many messages. Please try again in a minute.</Message></Response>`,
+        { headers: { "Content-Type": "text/xml" } }
+      );
+    }
     const formData = await request.formData();
     const from = formData.get("From") as string;
     const body = formData.get("Body") as string;

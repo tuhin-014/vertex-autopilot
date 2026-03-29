@@ -54,6 +54,74 @@ export class HiringAgent extends BaseAgent {
     return [];
   }
 
+  // ── Seasonal Hiring Triggers ──
+  async checkSeasonalHiring(): Promise<AgentEvent[]> {
+    const events: AgentEvent[] = [];
+    const now = new Date();
+    const month = now.getMonth() + 1; // 1-12
+    const day = now.getDate();
+
+    // Seasonal triggers: pre-post jobs 30 days before peak
+    const seasons: { name: string; prePostMonth: number; prePostDay: number; roles: string[] }[] = [
+      { name: "Summer Rush", prePostMonth: 5, prePostDay: 1, roles: ["server", "cook", "host"] },
+      { name: "Holiday Season", prePostMonth: 11, prePostDay: 1, roles: ["server", "cook", "host", "dishwasher"] },
+      { name: "Spring Break", prePostMonth: 2, prePostDay: 15, roles: ["server", "host"] },
+    ];
+
+    for (const season of seasons) {
+      if (month !== season.prePostMonth || day !== season.prePostDay) continue;
+
+      // Check if already triggered this year
+      const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
+      const { data: existing } = await this.supabase
+        .from("agent_events")
+        .select("id")
+        .eq("event_type", "seasonal_hiring")
+        .eq("metadata->>season", season.name)
+        .gte("created_at", yearStart)
+        .single();
+      if (existing) continue;
+
+      const { data: locations } = await this.supabase.from("locations").select("id, name");
+      if (!locations) continue;
+
+      for (const loc of locations) {
+        // Increase staffing targets temporarily
+        for (const role of season.roles) {
+          const { data: target } = await this.supabase
+            .from("staffing_targets")
+            .select("id, target_count")
+            .eq("location_id", loc.id)
+            .eq("role", role)
+            .single();
+
+          if (target) {
+            const seasonalTarget = Math.ceil(target.target_count * 1.3); // +30%
+            await this.supabase.from("staffing_targets").update({
+              seasonal_override: seasonalTarget,
+              updated_at: new Date().toISOString(),
+            }).eq("id", target.id);
+          }
+        }
+      }
+
+      const event: AgentEvent = {
+        agent_type: "hiring",
+        event_type: "seasonal_hiring",
+        location_id: locations[0]?.id || "",
+        severity: "info",
+        description: `📅 ${season.name} approaching — staffing targets increased by 30% for ${season.roles.join(", ")} across all locations`,
+        action_taken: "Seasonal staffing override applied, understaffing checks will trigger job posts",
+        metadata: { season: season.name, roles: season.roles, increase: "30%" },
+      };
+
+      await this.logEvent(event);
+      events.push(event);
+    }
+
+    return events;
+  }
+
   // ── 1. Check Understaffing ──
   async checkStaffing(): Promise<AgentEvent[]> {
     const events: AgentEvent[] = [];
