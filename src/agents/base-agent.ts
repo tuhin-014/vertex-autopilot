@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendSMS } from "@/lib/sms/twilio";
 import { sendEmail } from "@/lib/email/send";
+import { dispatchNotification } from "@/lib/notifications/dispatch";
 
 export type Severity = "critical" | "warning" | "info" | "log";
 
@@ -51,21 +52,32 @@ export abstract class BaseAgent {
     return data?.id || "";
   }
 
-  /** Send notification via appropriate channel based on severity */
+  /** Send notification via appropriate channel based on severity and preferences */
   async notify(
     severity: Severity,
     target: NotificationTarget,
     message: string,
     emailSubject?: string,
     emailHtml?: string,
-    agentEventId?: string
+    agentEventId?: string,
+    locationId?: string
   ): Promise<void> {
+    // If we have a locationId, use smart dispatcher (checks preferences)
+    if (locationId) {
+      await dispatchNotification({
+        locationId,
+        severity,
+        smsBody: message,
+        emailSubject,
+        emailHtml,
+        agentEventId,
+      });
+      return;
+    }
+
+    // Fallback: direct send (for cases without a location context)
     const channels: string[] = [];
 
-    // Critical = SMS + Email + Dashboard
-    // Warning = SMS + Dashboard
-    // Info = Email + Dashboard
-    // Log = Dashboard only
     if ((severity === "critical" || severity === "warning") && target.phone) {
       await sendSMS(target.phone, message);
       channels.push("sms");
@@ -75,7 +87,6 @@ export abstract class BaseAgent {
       channels.push("email");
     }
 
-    // Log all notifications
     await this.supabase.from("notifications_log").insert({
       recipient_phone: target.phone,
       recipient_email: target.email,

@@ -38,5 +38,53 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     metadata: { approval_id: id, payload: data.payload },
   });
 
+  // Trigger real workflows on approval
+  if (action === "approve" && data.payload) {
+    const payload = data.payload as Record<string, unknown>;
+
+    // Hire decision → advance candidate + send offer
+    if (data.action_type === "hire_decision" && payload.candidate_id) {
+      await supabase
+        .from("candidates_pipeline")
+        .update({ stage: "offered", offer_sent: true, updated_at: new Date().toISOString() })
+        .eq("id", payload.candidate_id);
+
+      // Get candidate phone for notification
+      const { data: candidate } = await supabase
+        .from("candidates_pipeline")
+        .select("name, phone, role_applied")
+        .eq("id", payload.candidate_id)
+        .single();
+
+      if (candidate?.phone) {
+        const { sendSMS } = await import("@/lib/sms/twilio");
+        await sendSMS(candidate.phone,
+          `🎉 Great news, ${candidate.name}! We'd like to offer you the ${candidate.role_applied} position. Check your email for the offer letter, or call us to discuss.\n—Vertex Hire`
+        );
+      }
+
+      await supabase.from("agent_events").insert({
+        agent_type: "hiring",
+        event_type: "offer_sent",
+        location_id: data.location_id,
+        severity: "info",
+        description: `📨 Offer sent to ${payload.candidate_name} for ${payload.role} — SMS notification delivered`,
+        metadata: { candidate_id: payload.candidate_id },
+      });
+    }
+
+    // On-site visit → log scheduled visit
+    if (data.action_type === "on_site_visit") {
+      await supabase.from("agent_events").insert({
+        agent_type: "cross_product",
+        event_type: "visit_scheduled",
+        location_id: data.location_id,
+        severity: "info",
+        description: `📅 On-site visit approved for ${payload.store_name} (Risk Score: ${payload.risk_score})`,
+        metadata: payload,
+      });
+    }
+  }
+
   return NextResponse.json({ success: true, status: data.status });
 }
