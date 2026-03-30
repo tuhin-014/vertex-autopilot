@@ -88,6 +88,21 @@ export default function OnboardingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orgId, locationId, enableSafety, enableHiring }),
       });
+
+      // Notify admin of new signup (fire-and-forget)
+      fetch('/api/admin/new-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: managerName,
+          email: managerEmail,
+          phone: managerPhone,
+          company: orgName,
+          plan: 'trial',
+          app: 'Vertex Autopilot',
+        }),
+      }).catch(() => {});
+
       router.push("/dashboard");
     } catch { setError("Network error"); }
     finally { setLoading(false); }
