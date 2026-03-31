@@ -25,6 +25,7 @@ interface Order {
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  new: { bg: "bg-orange-100", text: "text-orange-700", label: "🔔 New" },
   pending: { bg: "bg-yellow-100", text: "text-yellow-700", label: "⏳ Pending" },
   preparing: { bg: "bg-blue-100", text: "text-blue-700", label: "👨‍🍳 Preparing" },
   ready: { bg: "bg-green-100", text: "text-green-700", label: "✅ Ready" },
@@ -50,7 +51,7 @@ export default function AIOrdersPage() {
       setOrders(data);
       setStats({
         total: data.length,
-        active: data.filter((o) => ["pending", "preparing", "ready"].includes(o.status)).length,
+        active: data.filter((o) => ["new", "pending", "preparing", "ready"].includes(o.status)).length,
         completed: data.filter((o) => o.status === "completed").length,
         revenue: data.filter((o) => o.status === "completed").reduce((sum, o) => sum + (o.total || 0), 0),
       });
@@ -113,6 +114,7 @@ export default function AIOrdersPage() {
       <div className="flex gap-2 flex-wrap">
         {[
           { key: "all", label: "All" },
+          { key: "new", label: "🔔 New" },
           { key: "pending", label: "⏳ Pending" },
           { key: "preparing", label: "👨‍🍳 Preparing" },
           { key: "ready", label: "✅ Ready" },
