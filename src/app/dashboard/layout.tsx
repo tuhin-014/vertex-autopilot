@@ -7,6 +7,7 @@ import MobileNav from "./components/MobileNav";
 const nav = [
   { href: "/dashboard", label: "Command Center", icon: "🎯", exact: true },
   { href: "/dashboard/stores", label: "All Stores", icon: "📍" },
+  { href: "/dashboard/orders", label: "AI Orders", icon: "📞" },
   { href: "/dashboard/safety", label: "Food Safety", icon: "🛡️" },
   { href: "/dashboard/hiring", label: "Hiring", icon: "👥" },
   { href: "/dashboard/events", label: "Agent Activity", icon: "📋" },
