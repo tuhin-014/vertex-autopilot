@@ -1,13 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-// OrderAI Supabase (read-only access for orders)
-const orderaiSupabase = createClient(
-  "https://uxtfugwdihjvvxkahjpq.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4dGZ1Z3dkaWhqdnZ4a2FoanBxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0NjA0MDYsImV4cCI6MjA1NzAzNjQwNn0.Sxp-IORCdml4ZZDV-URnJiMHB4MqPJFM0r4leaxxqJE"
-);
 
 interface Order {
   id: string;
@@ -41,19 +34,17 @@ export default function AIOrdersPage() {
   const [stats, setStats] = useState({ total: 0, active: 0, completed: 0, revenue: 0 });
 
   const fetchOrders = useCallback(async () => {
-    const { data } = await orderaiSupabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(100);
+    const res = await fetch("/api/orderai/orders");
+    const json = await res.json();
+    const data = json.orders;
 
     if (data) {
       setOrders(data);
       setStats({
         total: data.length,
-        active: data.filter((o) => ["new", "pending", "preparing", "ready"].includes(o.status)).length,
-        completed: data.filter((o) => o.status === "completed").length,
-        revenue: data.filter((o) => o.status === "completed").reduce((sum, o) => sum + (o.total || 0), 0),
+        active: data.filter((o: Order) => ["new", "pending", "preparing", "ready"].includes(o.status)).length,
+        completed: data.filter((o: Order) => o.status === "completed").length,
+        revenue: data.filter((o: Order) => o.status === "completed").reduce((sum: number, o: Order) => sum + (o.total || 0), 0),
       });
     }
     setLoading(false);
@@ -66,7 +57,11 @@ export default function AIOrdersPage() {
   }, [fetchOrders]);
 
   const updateStatus = async (orderId: string, newStatus: string) => {
-    await orderaiSupabase.from("orders").update({ status: newStatus, updated_at: new Date().toISOString() }).eq("id", orderId);
+    await fetch("/api/orderai/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: orderId, status: newStatus }),
+    });
     fetchOrders();
     if (selectedOrder?.id === orderId) setSelectedOrder({ ...selectedOrder, status: newStatus });
   };
