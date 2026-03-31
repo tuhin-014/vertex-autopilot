@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 const ORDERAI_URL = "https://orderai-web.vercel.app";
+const EMBED_TOKEN = "orderai_embed_43e0b8c58114bd7604334116afe67658";
 
 const quickLinks = [
   { label: "Orders", href: "/dashboard", icon: "📋" },
@@ -59,7 +60,7 @@ export default function AIOrdersPage() {
 
       {/* Embedded OrderAI */}
       <iframe
-        src={ORDERAI_URL + activeView}
+        src={`${ORDERAI_URL}${activeView}?embed_token=${EMBED_TOKEN}`}
         className="w-full h-full border-0"
         allow="clipboard-read; clipboard-write"
         title="OrderAI Dashboard"
