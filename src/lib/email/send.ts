@@ -16,7 +16,7 @@ export async function sendEmail(payload: EmailPayload): Promise<{ success: boole
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: payload.from || "Vertex Autopilot <noreply@vertexlabsolutions.com>",
+        from: payload.from || "Vertex Autopilot <hello@vertexlabsolutions.com>",
         to: payload.to,
         subject: payload.subject,
         html: payload.html,
