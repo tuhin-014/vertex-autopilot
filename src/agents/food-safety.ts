@@ -48,10 +48,6 @@ export class FoodSafetyAgent extends BaseAgent {
         const windowStart = new Date(now);
         windowStart.setHours(schedHour + 4, schedMin, 0, 0); // Convert back to UTC
         const windowEnd = new Date(windowStart);
-        windowEnd.setMinutes(windowEnd.getMinutes() + graceMins);
-
-        // Only check today's logs
-        if (windowStart.getDate() !== now.getDate()) continue;
 
         const { data: logs } = await this.supabase
           .from("temp_logs")
@@ -75,17 +71,16 @@ export class FoodSafetyAgent extends BaseAgent {
           const { data: existingAlert } = await this.supabase
             .from("agent_events")
             .select("id")
-            .eq("agent_type", "food_safety")
-            .eq("event_type", "missed_log")
             .eq("location_id", schedule.location_id)
+            .eq("event_type", "missed_log")
+            .eq("metadata->>equipment", schedule.equipment_name)
+            .eq("metadata->>scheduled_time", schedTime)
             .gte("created_at", windowStart.toISOString())
             .single();
 
           if (existingAlert) continue; // Already alerted
 
-          const locationName = (schedule as Record<string, unknown>).locations
-            ? ((schedule as Record<string, unknown>).locations as Record<string, string>).name
-            : "Unknown Store";
+          const locationName = schedule.locations?.name || "Unknown Store";
 
           const event: AgentEvent = {
             agent_type: "food_safety",
@@ -101,7 +96,7 @@ export class FoodSafetyAgent extends BaseAgent {
             },
           };
 
-          const eventId = await this.logEvent(event);
+          const loggedEvent = await this.logEvent(event);
 
           // Send SMS to cook
           if (cook?.phone) {
@@ -111,7 +106,7 @@ export class FoodSafetyAgent extends BaseAgent {
               cook.name,
               `${BASE_URL}/dashboard/safety`
             );
-            await this.notify("warning", { phone: cook.phone, email: cook.email, name: cook.name }, smsBody, undefined, undefined, eventId);
+            await this.notify("warning", { phone: cook.phone, email: cook.email, name: cook.name }, smsBody, undefined, undefined, loggedEvent.id);
           }
 
           events.push(event);
@@ -122,110 +117,76 @@ export class FoodSafetyAgent extends BaseAgent {
     return events;
   }
 
-  // ── 2. Check Out-of-Range Temps ──
+  // ── 2. Check Out-of-Range Temperatures ──
   async checkOutOfRange(): Promise<AgentEvent[]> {
     const events: AgentEvent[] = [];
-
-    // Get temp logs from the last hour that haven't been flagged
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-
-    const { data: recentLogs } = await this.supabase
+    const { data: logs } = await this.supabase
       .from("temp_logs")
-      .select("*, locations!inner(id, name)")
-      .gte("recorded_at", oneHourAgo)
-      .or("status.is.null,status.neq.flagged");
+      .select("*, locations!inner(name)")
+      .gte("recorded_at", new Date(Date.now() - 60 * 60 * 1000).toISOString()) // last hour
+      .order("recorded_at", { ascending: false });
 
-    if (!recentLogs) return events;
+    if (!logs) return events;
 
-    for (const log of recentLogs) {
-      const temp = Number(log.temperature);
-      const equipment = log.equipment || "";
-      const isCold = equipment.toLowerCase().includes("cooler") || equipment.toLowerCase().includes("freezer");
-      const isHot = equipment.toLowerCase().includes("hot") || equipment.toLowerCase().includes("grill");
+    for (const log of logs) {
+      const temp = log.temperature;
+      const equipment = log.equipment?.toLowerCase() || "";
 
-      let violation = false;
+      // Determine safe range
+      let isOutOfRange = false;
       let safeRange = "";
 
-      if (isCold && temp > COLD_MAX) {
-        violation = true;
-        safeRange = `≤ ${COLD_MAX}°F`;
-      } else if (isHot && temp < HOT_MIN) {
-        violation = true;
-        safeRange = `≥ ${HOT_MIN}°F`;
+      if (equipment.includes("freezer") || equipment.includes("cold")) {
+        if (temp > COLD_MAX) {
+          isOutOfRange = true;
+          safeRange = `≤${COLD_MAX}°F`;
+        }
+      } else if (equipment.includes("hot") || equipment.includes("warmer")) {
+        if (temp < HOT_MIN) {
+          isOutOfRange = true;
+          safeRange = `≥${HOT_MIN}°F`;
+        }
       }
 
-      if (!violation) continue;
+      if (!isOutOfRange) continue;
 
-      // Check if already flagged
-      const { data: existingFlag } = await this.supabase
+      // Check if we already flagged this log
+      const { data: existing } = await this.supabase
         .from("agent_events")
         .select("id")
-        .eq("event_type", "out_of_range")
-        .eq("location_id", log.location_id)
         .eq("metadata->>temp_log_id", log.id)
         .single();
 
-      if (existingFlag) continue;
+      if (existing) continue;
 
-      const locationName = (log as Record<string, unknown>).locations
-        ? ((log as Record<string, unknown>).locations as Record<string, string>).name
-        : "Unknown Store";
+      const locationName = log.locations?.name || "Unknown Store";
 
-      // Get cook at location
+      // Find the cook on duty
       const { data: cook } = await this.supabase
         .from("employees")
-        .select("id, name, phone, email")
+        .select("name, phone, email")
         .eq("location_id", log.location_id)
         .eq("role", "cook")
         .limit(1)
         .single();
 
-      // Create corrective action
-      const { data: corrective } = await this.supabase
-        .from("corrective_actions")
-        .insert({
-          organization_id: log.organization_id,
-          location_id: log.location_id,
-          temp_log_id: log.id,
-          trigger_type: "out_of_range",
-          trigger_description: `${equipment} reading ${temp}°F (safe: ${safeRange})`,
-          equipment: equipment,
-          temperature: temp,
-          action_steps: [
-            { step: 1, action: "Check equipment immediately", done: false },
-            { step: 2, action: "Move food to safe storage if needed", done: false },
-            { step: 3, action: "Re-check temp in 15 minutes", done: false },
-            { step: 4, action: "Report to manager if not resolved", done: false },
-          ],
-          status: "open",
-          assigned_to: cook?.name || "Unassigned",
-        })
-        .select("id")
-        .single();
-
-      // Mark temp log as flagged
-      await this.supabase
-        .from("temp_logs")
-        .update({ status: "flagged" })
-        .eq("id", log.id);
-
       const event: AgentEvent = {
         agent_type: "food_safety",
-        event_type: "out_of_range",
+        event_type: "temp_violation",
         location_id: log.location_id,
-        severity: "critical",
+        severity: "critical" as Severity,
         description: `⚠️ ${equipment} at ${locationName}: ${temp}°F (safe: ${safeRange})`,
-        action_taken: `Corrective action created, SMS sent to ${cook?.name || "manager"}`,
+        action_taken: cook ? `SMS sent to ${cook.name}` : "No cook found",
         metadata: {
-          temp_log_id: log.id,
-          corrective_action_id: corrective?.id,
           temperature: temp,
           safe_range: safeRange,
           equipment,
+          location_name: locationName,
+          temp_log_id: log.id,
         },
       };
 
-      const eventId = await this.logEvent(event);
+      const loggedEvent = await this.logEvent(event);
 
       // SMS the cook
       if (cook?.phone) {
@@ -237,7 +198,7 @@ export class FoodSafetyAgent extends BaseAgent {
           cook.name,
           `${BASE_URL}/dashboard/safety`
         );
-        await this.notify("critical", { phone: cook.phone, email: cook.email, name: cook.name }, smsBody, undefined, undefined, eventId);
+        await this.notify("critical", { phone: cook.phone, email: cook.email, name: cook.name }, smsBody, undefined, undefined, loggedEvent.id);
       }
 
       events.push(event);
@@ -249,77 +210,58 @@ export class FoodSafetyAgent extends BaseAgent {
   // ── 3. Check Expiring Certifications ──
   async checkCertifications(): Promise<AgentEvent[]> {
     const events: AgentEvent[] = [];
-    const now = new Date();
-    const thirtyDays = new Date(now);
+    const today = new Date().toISOString().split("T")[0];
+    const thirtyDays = new Date();
     thirtyDays.setDate(thirtyDays.getDate() + 30);
-    const sevenDays = new Date(now);
-    sevenDays.setDate(sevenDays.getDate() + 7);
+    const thirtyDaysStr = thirtyDays.toISOString().split("T")[0];
 
-    // Get certs expiring within 30 days or already expired
     const { data: certs } = await this.supabase
       .from("certifications")
-      .select("*, employees!inner(id, name, phone, email, location_id, role)")
-      .lte("expiry_date", thirtyDays.toISOString().split("T")[0])
-      .or("status.is.null,status.neq.revoked");
+      .select("*, employees!inner(name, phone, email, location_id), locations!inner(name, manager_name)")
+      .lte("expiry_date", thirtyDaysStr)
+      .eq("status", "active")
+      .order("expiry_date", { ascending: true });
 
     if (!certs) return events;
 
     for (const cert of certs) {
-      const expiryDate = new Date(cert.expiry_date);
-      const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      const employee = cert.employees as Record<string, string>;
-      const employeeName = employee?.name || "Unknown";
+      const employee = cert.employees;
+      const location = cert.locations;
+      if (!employee) continue;
 
-      // Check if we already alerted for this cert this week
-      const weekAgo = new Date(now);
-      weekAgo.setDate(weekAgo.getDate() - 7);
+      const employeeName = employee.name;
+      const certName = cert.cert_type || cert.cert_name || "Certification";
+      const daysLeft = Math.floor(
+        (new Date(cert.expiry_date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      // Check if already alerted within last 7 days
       const { data: existingAlert } = await this.supabase
         .from("agent_events")
         .select("id")
-        .eq("event_type", daysLeft <= 0 ? "cert_expired" : "cert_expiring")
         .eq("metadata->>cert_id", cert.id)
-        .gte("created_at", weekAgo.toISOString())
+        .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
         .single();
 
       if (existingAlert) continue;
 
-      let severity: Severity = "info";
-      let eventType = "cert_expiring";
-
-      if (daysLeft <= 0) {
-        severity = "critical";
-        eventType = "cert_expired";
-      } else if (daysLeft <= 7) {
-        severity = "warning";
-      }
-
-      // Get location name
-      const { data: location } = await this.supabase
-        .from("locations")
-        .select("name, manager_name")
-        .eq("id", employee.location_id)
-        .single();
-
       const event: AgentEvent = {
         agent_type: "food_safety",
-        event_type: eventType,
+        event_type: daysLeft <= 0 ? "cert_expired" : "cert_expiring",
         location_id: employee.location_id,
-        severity,
-        description: daysLeft <= 0
-          ? `❌ EXPIRED: ${employeeName}'s ${cert.cert_type || cert.cert_name} expired ${Math.abs(daysLeft)} days ago`
-          : `📋 ${employeeName}'s ${cert.cert_type || cert.cert_name} expires in ${daysLeft} days (${cert.expiry_date})`,
-        action_taken: daysLeft <= 0
-          ? `Employee flagged as non-compliant, manager notified`
-          : `${daysLeft <= 7 ? "SMS" : "Email"} sent to employee`,
+        severity: daysLeft <= 0 ? "critical" : daysLeft <= 7 ? "warning" : "info",
+        description: `${employeeName}'s ${certName} ${daysLeft <= 0 ? "EXPIRED" : `expires in ${daysLeft} days`}`,
+        action_taken: daysLeft <= 0 ? "Marked as expired, manager notified" : "Notified employee",
         metadata: {
-          cert_id: cert.id,
-          employee_id: employee.id,
-          days_left: daysLeft,
+          employee_name: employeeName,
+          cert_name: certName,
           expiry_date: cert.expiry_date,
+          days_left: daysLeft,
+          cert_id: cert.id,
         },
       };
 
-      const eventId = await this.logEvent(event);
+      const loggedEvent = await this.logEvent(event);
 
       // Notify based on severity
       if (daysLeft <= 0) {
@@ -340,8 +282,8 @@ export class FoodSafetyAgent extends BaseAgent {
             await this.notify(
               "critical",
               { phone: manager.phone, email: manager.email, name: manager.name },
-              `🚨 ${employeeName}'s ${cert.cert_type || cert.cert_name} has EXPIRED. Remove from food handling duties immediately.\n—Vertex Safety`,
-              undefined, undefined, eventId
+              `🚨 ${employeeName}'s ${certName} has EXPIRED. Remove from food handling duties immediately.\n—Vertex Safety`,
+              undefined, undefined, loggedEvent.id
             );
           }
         }
@@ -349,21 +291,21 @@ export class FoodSafetyAgent extends BaseAgent {
         // Urgent — SMS
         const smsBody = certExpiringSMS(
           employeeName,
-          cert.cert_type || cert.cert_name || "Certification",
+          certName,
           cert.expiry_date,
           `${BASE_URL}/dashboard/safety`
         );
-        await this.notify("warning", { phone: employee.phone as string, email: employee.email as string, name: employeeName }, smsBody, undefined, undefined, eventId);
+        await this.notify("warning", { phone: employee.phone as string, email: employee.email as string, name: employeeName }, smsBody, undefined, undefined, loggedEvent.id);
       } else if (employee.email) {
         // 30-day warning — email
-        const html = certWarningHTML(employeeName, cert.cert_type || cert.cert_name || "Certification", cert.expiry_date, daysLeft);
+        const html = certWarningHTML(employeeName, certName, cert.expiry_date, daysLeft);
         await this.notify(
           "info",
           { email: employee.email as string, name: employeeName },
-          `Your ${cert.cert_type || cert.cert_name} expires in ${daysLeft} days`,
+          `Your ${certName} expires in ${daysLeft} days`,
           `Certification Expiring — ${employeeName}`,
           html,
-          eventId
+          loggedEvent.id
         );
       }
 
@@ -376,52 +318,50 @@ export class FoodSafetyAgent extends BaseAgent {
   // ── 4. Check Overdue Corrective Actions ──
   async checkCorrectiveActions(): Promise<AgentEvent[]> {
     const events: AgentEvent[] = [];
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    // Get open corrective actions older than 4 hours
-    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
-
-    const { data: overdueActions } = await this.supabase
+    const { data: actions } = await this.supabase
       .from("corrective_actions")
-      .select("*, locations!inner(id, name)")
+      .select("*, locations!inner(name)")
       .eq("status", "open")
-      .lte("created_at", fourHoursAgo);
+      .lte("due_date", oneDayAgo.toISOString().split("T")[0]);
 
-    if (!overdueActions) return events;
+    if (!actions) return events;
 
-    for (const action of overdueActions) {
-      const hoursOld = Math.round((Date.now() - new Date(action.created_at).getTime()) / (1000 * 60 * 60));
+    for (const action of actions) {
+      const hoursOld = Math.floor((now.getTime() - new Date(action.due_date).getTime()) / (1000 * 60 * 60));
+      if (hoursOld < 24) continue; // not overdue yet
 
-      // Check if we already escalated this one in the last 2 hours
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      const { data: recentEscalation } = await this.supabase
+      // Check if we already alerted in last 24h
+      const { data: existingAlert } = await this.supabase
         .from("agent_events")
         .select("id")
-        .eq("event_type", "corrective_overdue")
-        .eq("metadata->>corrective_id", action.id)
-        .gte("created_at", twoHoursAgo)
+        .eq("metadata->>corrective_action_id", action.id)
+        .gte("created_at", new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString())
         .single();
 
-      if (recentEscalation) continue;
+      if (existingAlert) continue;
 
-      const locationName = (action as Record<string, unknown>).locations
-        ? ((action as Record<string, unknown>).locations as Record<string, string>).name
-        : "Unknown Store";
+      const locationName = action.locations?.name || "Unknown Store";
 
       const event: AgentEvent = {
         agent_type: "food_safety",
         event_type: "corrective_overdue",
         location_id: action.location_id,
         severity: hoursOld >= 48 ? "critical" : "warning",
-        description: `Corrective action overdue (${hoursOld}h): ${action.trigger_description} at ${locationName}`,
-        action_taken: hoursOld >= 48 ? "Escalated to regional manager" : `Re-alert sent to ${action.assigned_to}`,
+        description: `⚠️ Overdue corrective action at ${locationName}: ${action.title}`,
+        action_taken: `Alerted ${hoursOld >= 48 ? "manager" : "assignee"}`,
         metadata: {
-          corrective_id: action.id,
+          action_title: action.title,
+          action_description: action.trigger_description,
+          due_date: action.due_date,
           hours_overdue: hoursOld,
           assigned_to: action.assigned_to,
         },
       };
 
-      const eventId = await this.logEvent(event);
+      const loggedEvent = await this.logEvent(event);
 
       // Get the assignee or manager
       if (hoursOld >= 48) {
@@ -437,21 +377,20 @@ export class FoodSafetyAgent extends BaseAgent {
         if (manager?.phone) {
           const smsBody = escalationSMS(
             locationName,
-            action.trigger_description,
+            action.title,
             hoursOld,
-            action.assigned_to,
+            action.assigned_to || "Unknown",
             manager.name,
-            `${BASE_URL}/dashboard/safety`
+            `${BASE_URL}/action/${action.id}`
           );
-          await this.notify("critical", { phone: manager.phone, email: manager.email, name: manager.name }, smsBody, undefined, undefined, eventId);
+          await this.notify("critical", { phone: manager.phone, email: manager.email, name: manager.name }, smsBody, undefined, undefined, loggedEvent.id);
         }
       } else {
         // Re-alert the assignee
         const { data: assignee } = await this.supabase
           .from("employees")
           .select("phone, email, name")
-          .eq("name", action.assigned_to)
-          .limit(1)
+          .eq("id", action.assigned_to)
           .single();
 
         if (assignee?.phone) {
@@ -459,95 +398,12 @@ export class FoodSafetyAgent extends BaseAgent {
             "warning",
             { phone: assignee.phone, email: assignee.email, name: assignee.name },
             `⏰ Reminder: Corrective action still open (${hoursOld}h) — ${action.trigger_description} at ${locationName}\n—Vertex Safety`,
-            undefined, undefined, eventId
+            undefined, undefined, loggedEvent.id
           );
         }
       }
 
       events.push(event);
-    }
-
-    return events;
-  }
-
-  // ── 5. Pattern Detection ──
-  async detectPatterns(): Promise<AgentEvent[]> {
-    const events: AgentEvent[] = [];
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-    // Get all locations
-    const { data: locations } = await this.supabase.from("locations").select("id, name");
-    if (!locations) return events;
-
-    for (const location of locations) {
-      // Count violations by type in last 30 days
-      const { data: violations } = await this.supabase
-        .from("agent_events")
-        .select("event_type, metadata")
-        .eq("agent_type", "food_safety")
-        .eq("location_id", location.id)
-        .in("severity", ["critical", "warning"])
-        .gte("created_at", thirtyDaysAgo);
-
-      if (!violations || violations.length < 3) continue;
-
-      // Group by event_type
-      const counts: Record<string, number> = {};
-      for (const v of violations) {
-        counts[v.event_type] = (counts[v.event_type] || 0) + 1;
-      }
-
-      for (const [type, count] of Object.entries(counts)) {
-        if (count < 3) continue;
-
-        // Check if we already flagged this pattern this week
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const { data: existing } = await this.supabase
-          .from("agent_events")
-          .select("id")
-          .eq("event_type", "pattern_detected")
-          .eq("location_id", location.id)
-          .eq("metadata->>pattern_type", type)
-          .gte("created_at", weekAgo)
-          .single();
-
-        if (existing) continue;
-
-        const event: AgentEvent = {
-          agent_type: "food_safety",
-          event_type: "pattern_detected",
-          location_id: location.id,
-          severity: "critical",
-          description: `🔄 Pattern: ${count} ${type.replace(/_/g, " ")} violations at ${location.name} in 30 days`,
-          action_taken: "Risk alert generated, targeted training recommended",
-          metadata: {
-            pattern_type: type,
-            violation_count: count,
-            period_days: 30,
-          },
-        };
-
-        await this.logEvent(event);
-
-        // Notify store manager
-        const { data: manager } = await this.supabase
-          .from("employees")
-          .select("phone, email, name")
-          .eq("location_id", location.id)
-          .eq("role", "manager")
-          .limit(1)
-          .single();
-
-        if (manager?.phone) {
-          await this.notify(
-            "critical",
-            { phone: manager.phone, email: manager.email, name: manager.name },
-            `🔄 PATTERN ALERT: ${location.name} has ${count} ${type.replace(/_/g, " ")} incidents in 30 days. Targeted training recommended.\n—Vertex Safety`,
-          );
-        }
-
-        events.push(event);
-      }
     }
 
     return events;

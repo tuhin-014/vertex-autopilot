@@ -12,20 +12,16 @@ export async function GET(request: Request) {
 
   try {
     const agent = new FoodSafetyAgent();
-    const [corrective, patterns] = await Promise.all([
-      agent.checkCorrectiveActions(),
-      agent.detectPatterns(),
-    ]);
+    const corrective = await agent.checkCorrectiveActions();
 
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
       results: {
         overdue_actions: corrective.length,
-        patterns_detected: patterns.length,
-        total_events: corrective.length + patterns.length,
+        total_events: corrective.length,
       },
-      events: [...corrective, ...patterns],
+      events: corrective,
     });
   } catch (err) {
     console.error("check-corrective cron error:", err);

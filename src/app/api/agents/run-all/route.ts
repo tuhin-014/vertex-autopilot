@@ -18,12 +18,11 @@ export async function GET() {
     const startTime = Date.now();
 
     // Phase 1 agents (existing)
-    const [missedLogs, outOfRange, certs, corrective, patterns] = await Promise.all([
+    const [missedLogs, outOfRange, certs, corrective] = await Promise.all([
       safety.checkMissedTempLogs(),
       safety.checkOutOfRange(),
       safety.checkCertifications(),
       safety.checkCorrectiveActions(),
-      safety.detectPatterns(),
     ]);
 
     const [staffingCheck, screening, interviews, onboarding] = await Promise.all([
@@ -58,7 +57,7 @@ export async function GET() {
     ]);
 
     const allEvents = [
-      ...missedLogs, ...outOfRange, ...certs, ...corrective, ...patterns,
+      ...missedLogs, ...outOfRange, ...certs, ...corrective,
       ...staffingCheck, ...screening, ...interviews, ...onboarding,
       ...busyDays, ...noShows,
       ...anomalies, ...overdueCosts,
@@ -79,7 +78,6 @@ export async function GET() {
           out_of_range: outOfRange.length,
           cert_alerts: certs.length,
           overdue_corrective: corrective.length,
-          patterns: patterns.length,
         },
         hiring: {
           understaffed: staffingCheck.length,

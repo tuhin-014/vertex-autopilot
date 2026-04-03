@@ -6,6 +6,7 @@ import { dispatchNotification } from "@/lib/notifications/dispatch";
 export type Severity = "critical" | "warning" | "info" | "log";
 
 export interface AgentEvent {
+  id?: string;
   agent_type: string;
   event_type: string;
   location_id: string;
@@ -33,23 +34,24 @@ export abstract class BaseAgent {
   abstract check(): Promise<AgentEvent[]>;
 
   /** Log an event to the agent_events table */
-  async logEvent(event: AgentEvent): Promise<string> {
+  async logEvent(event: AgentEvent): Promise<AgentEvent> {
+    const row = {
+      agent_type: event.agent_type || this.agentType,
+      event_type: event.event_type,
+      location_id: event.location_id,
+      severity: event.severity,
+      description: event.description,
+      action_taken: event.action_taken,
+      metadata: event.metadata || {},
+    };
     const { data, error } = await this.supabase
       .from("agent_events")
-      .insert({
-        agent_type: event.agent_type || this.agentType,
-        event_type: event.event_type,
-        location_id: event.location_id,
-        severity: event.severity,
-        description: event.description,
-        action_taken: event.action_taken,
-        metadata: event.metadata || {},
-      })
+      .insert(row)
       .select("id")
       .single();
 
     if (error) console.error("Failed to log agent event:", error);
-    return data?.id || "";
+    return { ...row, id: data?.id } as AgentEvent;
   }
 
   /** Send notification via appropriate channel based on severity and preferences */
@@ -124,7 +126,7 @@ export abstract class BaseAgent {
         <p>${issue}</p>
         <p style="color:#9ca3af;">This issue was escalated because the original assignee did not respond.</p>
       </div>`,
-      event
+      event.id
     );
   }
 

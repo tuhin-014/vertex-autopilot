@@ -215,7 +215,7 @@ export class HiringAgent extends BaseAgent {
         },
       };
 
-      const eventId = await this.logEvent(event);
+      const loggedEvent = await this.logEvent(event);
 
       // Notify store manager
       const { data: manager } = await this.supabase
@@ -228,7 +228,7 @@ export class HiringAgent extends BaseAgent {
 
       if (manager?.phone) {
         const smsBody = understaffingAlertSMS(locationName, target.role, currentCount, target.target_count);
-        await this.notify(severity, { phone: manager.phone, email: manager.email, name: manager.name }, smsBody, undefined, undefined, eventId);
+        await this.notify(severity, { phone: manager.phone, email: manager.email, name: manager.name }, smsBody, undefined, undefined, loggedEvent.id);
       }
 
       events.push(event);
@@ -282,7 +282,7 @@ export class HiringAgent extends BaseAgent {
           },
         };
 
-        const eventId = await this.logEvent(event);
+        const loggedEvent = await this.logEvent(event);
 
         // Get location name for SMS
         const { data: location } = await this.supabase
@@ -298,7 +298,7 @@ export class HiringAgent extends BaseAgent {
             location?.name || "IHOP",
             `${BASE_URL}/dashboard/hiring`
           );
-          await this.notify("info", { phone: candidate.phone, name: candidate.name }, smsBody, undefined, undefined, eventId);
+          await this.notify("info", { phone: candidate.phone, name: candidate.name }, smsBody, undefined, undefined, loggedEvent.id);
         }
 
         events.push(event);
