@@ -39,12 +39,20 @@ export default function SettingsPage() {
   }
 
   const agents = [
-    { name: "Food Safety Autopilot", desc: "Temp logs, certifications, corrective actions, pattern detection", checks: "Every 30 min + daily" },
-    { name: "Hiring Autopilot", desc: "Understaffing, AI screening, text-to-apply, interview follow-ups, onboarding", checks: "Daily + hourly screening" },
-    { name: "Staffing Agent", desc: "Busy day predictions, schedule optimization, chronic understaffing detection", checks: "Daily" },
-    { name: "Revenue Optimizer", desc: "Weather-based recommendations, day-of-week patterns, promotion suggestions", checks: "Daily" },
-    { name: "Spend Optimizer", desc: "Corrective action cost tracking, spending anomaly detection, fine risk alerts", checks: "Every 2 hours" },
-    { name: "Cross-Product Intelligence", desc: "Safety↔staffing correlation, training gaps, high-risk store identification, weekly insights", checks: "Weekly + on-demand" },
+    { name: "🛡️ Food Safety", desc: "Temp logs, certifications, corrective actions", checks: "Every 30 min + daily" },
+    { name: "👥 Hiring", desc: "AI screening, text-to-apply, interviews, offers, onboarding", checks: "Daily + hourly" },
+    { name: "📊 Staffing", desc: "Busy day predictions, no-show patterns, schedule optimization", checks: "Daily" },
+    { name: "📈 Revenue Optimizer", desc: "Weather impact, day-of-week patterns, promotion suggestions", checks: "Daily" },
+    { name: "💸 Spend Optimizer", desc: "Spending anomalies, overdue cost tracking, fine risk alerts", checks: "Every 2 hours" },
+    { name: "🔗 Cross-Product Intelligence", desc: "Safety↔staffing correlation, training gaps, high-risk stores, weekly insights", checks: "Weekly" },
+    { name: "💰 Accountant", desc: "Financial health monitoring, P&L tracking, budget alerts", checks: "Daily" },
+    { name: "📋 Checklist Manager", desc: "Missed checklist alerts, shift handoff tracking", checks: "Every 30 min" },
+    { name: "📦 Inventory", desc: "Below-par stock alerts, expiring items, auto reorder suggestions", checks: "Every 6 hours" },
+    { name: "🧾 Invoice Manager", desc: "Overdue invoice alerts, vendor price anomaly detection", checks: "Daily" },
+    { name: "📢 Marketing", desc: "Slow day promos, campaign management, social content", checks: "Daily" },
+    { name: "📞 Order Manager", desc: "Stale order detection, queue monitoring, issue tracking", checks: "Every 15 min" },
+    { name: "⭐ Review Manager", desc: "Sentiment analysis, AI response generation, reputation monitoring", checks: "Hourly" },
+    { name: "🗑️ Waste Manager", desc: "Waste tracking, prep target optimization, cost reduction", checks: "Daily" },
   ];
 
   return (
@@ -150,7 +158,7 @@ export default function SettingsPage() {
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <h2 className="font-bold text-lg mb-4">🚀 Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
-          <a href="/api/agents/run-all" target="_blank" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition">▶ Run All 6 Agents</a>
+          <a href="/api/agents/run-all" target="_blank" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition">▶ Run All 14 Agents</a>
           <a href="/api/demo/simulate" target="_blank" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition">🎬 Run Demo Simulation</a>
           <a href="/api/reports/regional" target="_blank" className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition">📄 Regional Report (PDF)</a>
           <a href="/api/cron/daily-summary" target="_blank" className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition">📧 Send Daily Summary</a>

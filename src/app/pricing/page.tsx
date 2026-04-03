@@ -42,7 +42,7 @@ const plans = [
     price: 249,
     key: "enterprise",
     agents: 6,
-    desc: "All 6 Agents + Cross-Product AI",
+    desc: "All 14 Agents + Cross-Product AI",
     features: [
       "Everything in Pro",
       "📊 Revenue Optimizer",
