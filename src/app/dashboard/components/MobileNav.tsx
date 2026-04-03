@@ -7,13 +7,15 @@ import { usePathname } from "next/navigation";
 const nav = [
   { href: "/dashboard", label: "Command", icon: "🎯", exact: true },
   { href: "/dashboard/stores", label: "Stores", icon: "📍" },
-  { href: "/dashboard/orders", label: "AI Orders", icon: "📞" },
+  { href: "/dashboard/orders", label: "Orders", icon: "📞" },
+  { href: "/dashboard/menu", label: "Menu", icon: "🍽️" },
+  { href: "/dashboard/checklists", label: "Checklists", icon: "✅" },
   { href: "/dashboard/safety", label: "Safety", icon: "🛡️" },
   { href: "/dashboard/hiring", label: "Hiring", icon: "👥" },
   { href: "/dashboard/invoices", label: "Invoices", icon: "💰" },
   { href: "/dashboard/inventory", label: "Inventory", icon: "📦" },
   { href: "/dashboard/events", label: "Events", icon: "📋" },
-  { href: "/dashboard/approvals", label: "Approvals", icon: "✅" },
+  { href: "/dashboard/approvals", label: "Approvals", icon: "🔔" },
   { href: "/dashboard/settings", label: "Settings", icon: "⚙️" },
 ];
 
