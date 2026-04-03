@@ -9,6 +9,8 @@
     { "path": "/api/cron/check-invoices", "schedule": "0 14 * * *" },
     { "path": "/api/cron/check-inventory", "schedule": "0 */6 * * *" },
     { "path": "/api/cron/check-orders", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/check-checklists", "schedule": "*/30 * * * *" }
+    { "path": "/api/cron/check-checklists", "schedule": "*/30 * * * *" },
+    { "path": "/api/cron/check-waste", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/check-financials", "schedule": "0 4 * * *" }
   ]
 }

@@ -15,6 +15,8 @@ const nav = [
   { href: "/dashboard/invoices", label: "Invoices", icon: "💰" },
   { href: "/dashboard/vendors", label: "Vendors", icon: "🏢" },
   { href: "/dashboard/inventory", label: "Inventory", icon: "📦" },
+  { href: "/dashboard/waste", label: "Waste", icon: "🗑️" },
+  { href: "/dashboard/financials", label: "Financials", icon: "💵" },
   { href: "/dashboard/events", label: "Agent Activity", icon: "📋" },
   { href: "/dashboard/approvals", label: "Approvals", icon: "🔔" },
   { href: "/dashboard/settings", label: "Settings", icon: "⚙️" },
@@ -62,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="text-xs text-gray-600 pt-4 border-t border-gray-800">
           <div className="flex items-center gap-2 mb-1">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            <span className="text-green-400">8 agents active</span>
+            <span className="text-green-400">10 agents active</span>
           </div>
           Vertex Lab Solutions © 2026
         </div>
