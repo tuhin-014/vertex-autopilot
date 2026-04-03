@@ -5,8 +5,16 @@ import { StaffingAgent } from "@/agents/staffing";
 import { SpendOptimizer } from "@/agents/spend-optimizer";
 import { RevenueOptimizer } from "@/agents/revenue-optimizer";
 import { CrossProductAgent } from "@/agents/cross-product";
+import { AccountantAgent } from "@/agents/accountant";
+import { ChecklistAgent } from "@/agents/checklist";
+import { InventoryAgent } from "@/agents/inventory";
+import { InvoiceAgent } from "@/agents/invoice";
+import { MarketingAgent } from "@/agents/marketing";
+import { OrderAgent } from "@/agents/order";
+import { ReviewAgent } from "@/agents/review";
+import { WasteAgent } from "@/agents/waste";
 
-// Manual trigger: run ALL 6 agent checks (for testing/demo)
+// Manual trigger: run ALL 14 agent checks
 export async function GET() {
   try {
     const safety = new FoodSafetyAgent();
@@ -15,9 +23,17 @@ export async function GET() {
     const spend = new SpendOptimizer();
     const revenue = new RevenueOptimizer();
     const cross = new CrossProductAgent();
+    const accountant = new AccountantAgent();
+    const checklist = new ChecklistAgent();
+    const inventory = new InventoryAgent();
+    const invoice = new InvoiceAgent();
+    const marketing = new MarketingAgent();
+    const order = new OrderAgent();
+    const review = new ReviewAgent();
+    const waste = new WasteAgent();
     const startTime = Date.now();
 
-    // Phase 1 agents (existing)
+    // Phase 1: Food Safety
     const [missedLogs, outOfRange, certs, corrective] = await Promise.all([
       safety.checkMissedTempLogs(),
       safety.checkOutOfRange(),
@@ -25,6 +41,7 @@ export async function GET() {
       safety.checkCorrectiveActions(),
     ]);
 
+    // Phase 2: Hiring + Staffing
     const [staffingCheck, screening, interviews, onboarding] = await Promise.all([
       hiring.checkStaffing(),
       hiring.screenCandidates(),
@@ -32,12 +49,12 @@ export async function GET() {
       hiring.processAcceptedOffers(),
     ]);
 
-    // Phase 2 agents (new)
     const [busyDays, noShows] = await Promise.all([
       staffing.predictBusyDays(),
       staffing.detectNoShowPatterns(),
     ]);
 
+    // Phase 3: Financial
     const [anomalies, overdueCosts] = await Promise.all([
       spend.detectAnomalies(),
       spend.trackOverdueCosts(),
@@ -48,7 +65,26 @@ export async function GET() {
       revenue.analyzeDayPatterns(),
     ]);
 
-    // Cross-product runs last (needs data from others)
+    const accountantEvents = await accountant.check();
+
+    // Phase 4: Operations
+    const [overdueInvoices, priceAnomalies] = await Promise.all([
+      invoice.checkOverdueInvoices(),
+      invoice.detectPriceAnomalies(),
+    ]);
+
+    const [belowPar, expiringItems] = await Promise.all([
+      inventory.checkBelowPar(),
+      inventory.checkExpiringItems(),
+    ]);
+
+    const staleOrders = await order.checkStaleOrders();
+    const missedChecklists = await checklist.checkMissedChecklists();
+    const marketingEvents = await marketing.check();
+    const reviewEvents = await review.check();
+    const wasteEvents = await waste.check();
+
+    // Phase 5: Cross-product (runs last — needs data from others)
     const [safetyStaffing, certsTraining, highRisk, weeklyInsights] = await Promise.all([
       cross.correlateSafetyAndStaffing(),
       cross.correlateCertsAndTraining(),
@@ -62,6 +98,14 @@ export async function GET() {
       ...busyDays, ...noShows,
       ...anomalies, ...overdueCosts,
       ...weatherRec, ...dayPatterns,
+      ...accountantEvents,
+      ...overdueInvoices, ...priceAnomalies,
+      ...belowPar, ...expiringItems,
+      ...staleOrders,
+      ...missedChecklists,
+      ...marketingEvents,
+      ...reviewEvents,
+      ...wasteEvents,
       ...safetyStaffing, ...certsTraining, ...highRisk, ...weeklyInsights,
     ];
 
@@ -71,7 +115,7 @@ export async function GET() {
       success: true,
       timestamp: new Date().toISOString(),
       elapsed_ms: elapsed,
-      agents: 6,
+      agents: 14,
       summary: {
         food_safety: {
           missed_logs: missedLogs.length,
@@ -97,6 +141,20 @@ export async function GET() {
           weather_recommendations: weatherRec.length,
           day_patterns: dayPatterns.length,
         },
+        accountant: { events: accountantEvents.length },
+        invoice_manager: {
+          overdue: overdueInvoices.length,
+          price_anomalies: priceAnomalies.length,
+        },
+        inventory: {
+          below_par: belowPar.length,
+          expiring: expiringItems.length,
+        },
+        order_manager: { stale_orders: staleOrders.length },
+        checklist_manager: { missed: missedChecklists.length },
+        marketing: { events: marketingEvents.length },
+        review: { events: reviewEvents.length },
+        waste: { events: wasteEvents.length },
         cross_product: {
           safety_staffing_correlations: safetyStaffing.length,
           training_gaps: certsTraining.length,
