@@ -17,6 +17,7 @@ const nav = [
   { href: "/dashboard/inventory", label: "Inventory", icon: "📦" },
   { href: "/dashboard/waste", label: "Waste", icon: "🗑️" },
   { href: "/dashboard/financials", label: "Financials", icon: "💵" },
+  { href: "/dashboard/activity", label: "Staff Activity", icon: "📊" },
   { href: "/dashboard/events", label: "Agent Activity", icon: "📋" },
   { href: "/dashboard/approvals", label: "Approvals", icon: "🔔" },
   { href: "/dashboard/settings", label: "Settings", icon: "⚙️" },
