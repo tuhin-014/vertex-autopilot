@@ -9,9 +9,94 @@ interface Approval {
   action_type: string;
   location_id: string;
   status: string;
-  payload: Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: Record<string, any>;
   created_at: string;
   decided_at: string | null;
+}
+
+function getActionIcon(type: string): string {
+  const icons: Record<string, string> = {
+    purchase_order: '📦', hire_candidate: '👤', schedule_interview: '📅',
+    corrective_action: '⚠️', price_change: '💲', campaign: '📢',
+    expense: '💳', waste_alert: '🗑️', maintenance: '🔧',
+  };
+  return icons[type] || '📋';
+}
+
+function formatActionType(type: string): string {
+  return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function getAgentColor(agent: string): string {
+  const colors: Record<string, string> = {
+    inventory: 'bg-blue-600/20 text-blue-400',
+    hiring: 'bg-purple-600/20 text-purple-400',
+    food_safety: 'bg-red-600/20 text-red-400',
+    invoice: 'bg-yellow-600/20 text-yellow-400',
+    marketing: 'bg-green-600/20 text-green-400',
+    waste: 'bg-orange-600/20 text-orange-400',
+    accountant: 'bg-cyan-600/20 text-cyan-400',
+  };
+  return colors[agent] || 'bg-gray-600/20 text-gray-400';
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function PayloadDetails({ payload, actionType }: { payload: Record<string, any>; actionType: string }) {
+  if (actionType === 'purchase_order') {
+    return (
+      <div className="mt-2 bg-gray-900/50 rounded-lg p-3 space-y-1">
+        <div className="flex items-center gap-4 text-sm">
+          <span className="text-gray-400">Vendor:</span>
+          <span className="text-white font-medium">{String(payload.vendor || 'Unknown')}</span>
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <span className="text-gray-400">Items:</span>
+          <span className="text-white">{String(payload.item_count || '?')} items</span>
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <span className="text-gray-400">Estimated Total:</span>
+          <span className="text-green-400 font-bold text-base">${Number(payload.total_estimated || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+        </div>
+
+      </div>
+    );
+  }
+
+  if (actionType === 'hire_candidate' || actionType === 'schedule_interview') {
+    return (
+      <div className="mt-2 bg-gray-900/50 rounded-lg p-3 space-y-1">
+        {payload.candidate_name && <div className="text-sm"><span className="text-gray-400">Candidate:</span> <span className="text-white font-medium">{String(payload.candidate_name)}</span></div>}
+        {payload.role && <div className="text-sm"><span className="text-gray-400">Role:</span> <span className="text-white">{String(payload.role)}</span></div>}
+        {payload.ai_score && <div className="text-sm"><span className="text-gray-400">AI Score:</span> <span className="text-yellow-400 font-bold">{String(payload.ai_score)}/10</span></div>}
+        {payload.pay_rate && <div className="text-sm"><span className="text-gray-400">Pay:</span> <span className="text-green-400">${String(payload.pay_rate)}/hr</span></div>}
+      </div>
+    );
+  }
+
+  if (actionType === 'corrective_action') {
+    return (
+      <div className="mt-2 bg-gray-900/50 rounded-lg p-3 space-y-1">
+        {payload.issue && <div className="text-sm"><span className="text-gray-400">Issue:</span> <span className="text-red-400">{String(payload.issue)}</span></div>}
+        {payload.equipment && <div className="text-sm"><span className="text-gray-400">Equipment:</span> <span className="text-white">{String(payload.equipment)}</span></div>}
+        {payload.temperature && <div className="text-sm"><span className="text-gray-400">Temp:</span> <span className="text-red-400 font-bold">{String(payload.temperature)}°F</span></div>}
+      </div>
+    );
+  }
+
+  // Generic fallback — show all payload keys
+  const keys = Object.keys(payload).filter(k => !k.endsWith('_id') && k !== 'id');
+  if (keys.length === 0) return null;
+  return (
+    <div className="mt-2 bg-gray-900/50 rounded-lg p-3 space-y-1">
+      {keys.map(k => (
+        <div key={k} className="text-sm">
+          <span className="text-gray-400">{k.replace(/_/g, ' ')}:</span>{' '}
+          <span className="text-white">{typeof payload[k] === 'object' ? JSON.stringify(payload[k]) : String(payload[k])}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function ApprovalsPage() {
@@ -78,21 +163,20 @@ export default function ApprovalsPage() {
         {pending.length > 0 ? (
           <div className="space-y-3">
             {pending.map((a) => (
-              <div key={a.id} className="flex items-center justify-between bg-gray-800 rounded-lg p-4">
-                <div>
-                  <div className="font-medium">{a.action_type}</div>
-                  <div className="text-sm text-gray-500">
-                    {a.agent_type} • {new Date(a.created_at).toLocaleString()}
+              <div key={a.id} className="bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{getActionIcon(a.action_type)}</span>
+                    <div className="font-medium">{formatActionType(a.action_type)}</div>
+                    <span className={`text-xs px-2 py-0.5 rounded ${getAgentColor(a.agent_type)}`}>{a.agent_type}</span>
                   </div>
-                  {a.payload ? (
-                    <div className="text-xs text-gray-600 mt-1">
-                      {a.payload.candidate_name ? <span>Candidate: {String(a.payload.candidate_name)} • </span> : null}
-                      {a.payload.role ? <span>Role: {String(a.payload.role)} • </span> : null}
-                      {a.payload.ai_score ? <span>AI Score: {String(a.payload.ai_score)}</span> : null}
-                    </div>
-                  ) : null}
+                  <div className="text-xs text-gray-500 mt-1">
+                    {new Date(a.created_at).toLocaleString()}
+                  </div>
+                  {a.payload && <PayloadDetails payload={a.payload} actionType={a.action_type} />}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0 self-start">
                   <button
                     onClick={() => handleAction(a.id, "approve")}
                     disabled={acting === a.id}
@@ -107,6 +191,7 @@ export default function ApprovalsPage() {
                   >
                     {acting === a.id ? "..." : "✗ Reject"}
                   </button>
+                </div>
                 </div>
               </div>
             ))}
@@ -128,11 +213,11 @@ export default function ApprovalsPage() {
                     {a.status === "approved" ? "✓" : "✗"}
                   </span>
                   <div>
-                    <span className="text-gray-300 font-medium">{a.action_type}</span>
-                    <span className="text-gray-500 ml-2">{a.agent_type}</span>
-                    {a.payload?.candidate_name ? (
-                      <span className="text-gray-600 ml-2">— {String(a.payload.candidate_name)}</span>
-                    ) : null}
+                    <span className="text-gray-300 font-medium">{getActionIcon(a.action_type)} {formatActionType(a.action_type)}</span>
+                    <span className={`text-xs ml-2 px-2 py-0.5 rounded ${getAgentColor(a.agent_type)}`}>{a.agent_type}</span>
+                    {a.payload?.vendor && <span className="text-gray-400 ml-2">— {String(a.payload.vendor)}</span>}
+                    {a.payload?.candidate_name && <span className="text-gray-400 ml-2">— {String(a.payload.candidate_name)}</span>}
+                    {a.payload?.total_estimated && <span className="text-green-400 ml-2 font-medium">${Number(a.payload.total_estimated).toFixed(2)}</span>}
                   </div>
                 </div>
                 <div className="text-right">
