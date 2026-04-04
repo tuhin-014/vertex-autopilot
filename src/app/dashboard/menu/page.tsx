@@ -20,6 +20,8 @@ export default function MenuPage() {
   const [editForm, setEditForm] = useState<Partial<MenuItem>>({});
   const [showAdd, setShowAdd] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", category: "", price: 0, description: "", prep_time_mins: 10 });
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ added: number; errors: string[] } | null>(null);
 
   const fetchMenu = () => {
     fetch("/api/menu")
@@ -70,6 +72,107 @@ export default function MenuPage() {
   const categories = [...new Set(items.map((i) => i.category).filter(Boolean))];
   const available = items.filter((i) => i.available).length;
 
+  const exportCSV = () => {
+    const headers = ['name', 'category', 'price', 'description', 'prep_time_mins', 'available'];
+    const rows = items.map(item => [
+      `"${(item.name || '').replace(/"/g, '""')}"`,
+      `"${(item.category || '').replace(/"/g, '""')}"`,
+      item.price,
+      `"${(item.description || '').replace(/"/g, '""')}"`,
+      item.prep_time_mins || 10,
+      item.available ? 'yes' : 'no',
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `menu-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+  const downloadTemplate = () => {
+    const csv = `name,category,price,description,prep_time_mins,available
+"Classic Pancakes","Breakfast",9.99,"Fluffy buttermilk pancakes",12,yes
+"Grilled Chicken Salad","Lunch",13.99,"Fresh greens with grilled chicken",15,yes
+"Kids Mac & Cheese","Kids",6.99,"Creamy mac and cheese",8,yes`;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'menu-import-template.csv';
+    a.click();
+  };
+
+  const importCSV = async (file: File) => {
+    setImporting(true);
+    setImportResult(null);
+    const text = await file.text();
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) {
+      setImportResult({ added: 0, errors: ['File is empty or has no data rows'] });
+      setImporting(false);
+      return;
+    }
+
+    // Parse header
+    const header = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/"/g, ''));
+    const nameIdx = header.indexOf('name');
+    const catIdx = header.indexOf('category');
+    const priceIdx = header.indexOf('price');
+    const descIdx = header.indexOf('description');
+    const prepIdx = header.findIndex(h => h.includes('prep'));
+    const availIdx = header.findIndex(h => h.includes('avail'));
+
+    if (nameIdx === -1) {
+      setImportResult({ added: 0, errors: ['CSV must have a "name" column'] });
+      setImporting(false);
+      return;
+    }
+
+    let added = 0;
+    const errors: string[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      // Parse CSV line (handle quoted fields)
+      const fields: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (const ch of lines[i]) {
+        if (ch === '"') { inQuotes = !inQuotes; }
+        else if (ch === ',' && !inQuotes) { fields.push(current.trim()); current = ''; }
+        else { current += ch; }
+      }
+      fields.push(current.trim());
+
+      const name = fields[nameIdx];
+      if (!name) { errors.push(`Row ${i + 1}: missing name`); continue; }
+
+      const item = {
+        name,
+        category: catIdx >= 0 ? (fields[catIdx] || 'Other') : 'Other',
+        price: priceIdx >= 0 ? parseFloat(fields[priceIdx]) || 0 : 0,
+        description: descIdx >= 0 ? (fields[descIdx] || '') : '',
+        prep_time_mins: prepIdx >= 0 ? parseInt(fields[prepIdx]) || 10 : 10,
+        available: availIdx >= 0 ? !['no', 'false', '0', 'n'].includes((fields[availIdx] || 'yes').toLowerCase()) : true,
+      };
+
+      try {
+        const res = await fetch('/api/menu', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item),
+        });
+        if (res.ok) added++;
+        else errors.push(`Row ${i + 1} (${name}): API error`);
+      } catch {
+        errors.push(`Row ${i + 1} (${name}): network error`);
+      }
+    }
+
+    setImportResult({ added, errors });
+    setImporting(false);
+    fetchMenu();
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="text-gray-400 animate-pulse">Loading menu...</div></div>;
 
   return (
@@ -79,10 +182,45 @@ export default function MenuPage() {
           <h1 className="text-3xl font-bold">🍽️ Menu Manager</h1>
           <p className="text-gray-400">{items.length} items · {available} available</p>
         </div>
-        <button onClick={() => setShowAdd(!showAdd)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition">
-          + Add Item
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setShowAdd(!showAdd)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition">
+            + Add Item
+          </button>
+          <button onClick={exportCSV} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition" title="Export menu as CSV">
+            📥 Export CSV
+          </button>
+          <label className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-medium transition cursor-pointer" title="Import menu from CSV">
+            📤 Import CSV
+            <input type="file" accept=".csv" className="hidden" onChange={(e) => e.target.files?.[0] && importCSV(e.target.files[0])} />
+          </label>
+          <button onClick={downloadTemplate} className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition" title="Download CSV template">
+            📋 Template
+          </button>
+        </div>
       </div>
+
+      {/* Import result */}
+      {importing && (
+        <div className="bg-blue-600/10 border border-blue-500/30 rounded-xl p-4 text-blue-400 text-sm animate-pulse">
+          ⏳ Importing menu items...
+        </div>
+      )}
+      {importResult && (
+        <div className={`border rounded-xl p-4 text-sm ${importResult.errors.length > 0 ? 'bg-yellow-600/10 border-yellow-500/30' : 'bg-green-600/10 border-green-500/30'}`}>
+          <div className="font-medium">
+            ✅ Imported {importResult.added} item{importResult.added !== 1 ? 's' : ''} successfully
+            {importResult.errors.length > 0 && <span className="text-yellow-400 ml-2">⚠️ {importResult.errors.length} error{importResult.errors.length !== 1 ? 's' : ''}</span>}
+          </div>
+          {importResult.errors.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {importResult.errors.map((err, i) => (
+                <div key={i} className="text-xs text-red-400">• {err}</div>
+              ))}
+            </div>
+          )}
+          <button onClick={() => setImportResult(null)} className="mt-2 text-xs text-gray-400 hover:text-white">Dismiss</button>
+        </div>
+      )}
 
       {/* Add form */}
       {showAdd && (
