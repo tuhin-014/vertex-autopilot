@@ -7,8 +7,16 @@ interface Template {
   id: string;
   name: string;
   type: string;
-  items: string[];
+  items: unknown[] | string;
   deadline_minutes: number | null;
+}
+
+function countItems(items: unknown[] | string): number {
+  if (typeof items === 'string') {
+    try { return JSON.parse(items).length; } catch { return 0; }
+  }
+  if (Array.isArray(items)) return items.length;
+  return 0;
 }
 
 interface Completion {
@@ -109,7 +117,7 @@ export default function ChecklistsPage() {
                 <div key={tpl.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-800/30">
                   <div>
                     <div className="font-medium">{tpl.name}</div>
-                    <div className="text-xs text-gray-500">{tpl.items.length} items{tpl.deadline_minutes ? ` · ${tpl.deadline_minutes}min deadline` : ""}</div>
+                    <div className="text-xs text-gray-500">{countItems(tpl.items)} items{tpl.deadline_minutes ? ` · ${tpl.deadline_minutes}min deadline` : ""}</div>
                   </div>
                   {completion ? (
                     <div className="flex items-center gap-3">
@@ -148,7 +156,7 @@ export default function ChecklistsPage() {
                 <div key={tpl.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-800/30">
                   <div>
                     <div className="font-medium">{tpl.name}</div>
-                    <div className="text-xs text-gray-500">{tpl.items.length} items{tpl.deadline_minutes ? ` · ${tpl.deadline_minutes}min deadline` : ""}</div>
+                    <div className="text-xs text-gray-500">{countItems(tpl.items)} items{tpl.deadline_minutes ? ` · ${tpl.deadline_minutes}min deadline` : ""}</div>
                   </div>
                   {completion ? (
                     <div className="flex items-center gap-3">

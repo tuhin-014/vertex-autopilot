@@ -2,13 +2,36 @@
 
 import { useState, useEffect } from "react";
 
+interface ChecklistItem {
+  task?: string;
+  required?: boolean;
+}
+
 interface Template {
   id: string;
   name: string;
   type: string;
-  items: string[];
+  items: ChecklistItem[] | string[] | string;
   deadline_minutes: number | null;
   created_at: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseItems(items: any): any[] {
+  if (typeof items === 'string') {
+    try { return JSON.parse(items); } catch { return []; }
+  }
+  if (Array.isArray(items)) return items;
+  return [];
+}
+
+function getItemText(item: ChecklistItem | string): string {
+  if (typeof item === 'string') return item;
+  return item.task || JSON.stringify(item);
+}
+
+function getItemCount(items: ChecklistItem[] | string[] | string): number {
+  return parseItems(items).length;
 }
 
 export default function ChecklistTemplatesPage() {
@@ -45,6 +68,7 @@ export default function ChecklistTemplatesPage() {
 
   const openingTemplates = templates.filter((t) => t.type === "opening");
   const closingTemplates = templates.filter((t) => t.type === "closing");
+  const safetyTemplates = templates.filter((t) => t.type === "safety");
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="text-gray-400 animate-pulse">Loading templates...</div></div>;
 
@@ -80,61 +104,45 @@ export default function ChecklistTemplatesPage() {
         </div>
       )}
 
-      {/* Opening templates */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-800">
-          <h2 className="font-semibold">🌅 Opening Templates ({openingTemplates.length})</h2>
-        </div>
-        {openingTemplates.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">No opening templates</div>
-        ) : (
-          <div className="divide-y divide-gray-800">
-            {openingTemplates.map((tpl) => (
-              <div key={tpl.id} className="px-4 py-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium">{tpl.name}</div>
-                  <div className="text-xs text-gray-500">{tpl.items.length} items{tpl.deadline_minutes ? ` · ${tpl.deadline_minutes}min` : ""}</div>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {tpl.items.map((item, idx) => (
-                    <span key={idx} className="px-2 py-0.5 bg-gray-800 rounded text-xs text-gray-400">
-                      {typeof item === "string" ? item : (item as { task?: string }).task || JSON.stringify(item)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
+      {/* Template sections */}
+      {[
+        { label: '🌅 Opening', list: openingTemplates },
+        { label: '🌙 Closing', list: closingTemplates },
+        { label: '🛡️ Safety / Handover', list: safetyTemplates },
+      ].map(({ label, list }) => (
+        <div key={label} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-800">
+            <h2 className="font-semibold">{label} ({list.length})</h2>
           </div>
-        )}
-      </div>
-
-      {/* Closing templates */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-800">
-          <h2 className="font-semibold">🌙 Closing Templates ({closingTemplates.length})</h2>
+          {list.length === 0 ? (
+            <div className="px-4 py-8 text-center text-gray-500 text-sm">No templates</div>
+          ) : (
+            <div className="divide-y divide-gray-800">
+              {list.map((tpl) => {
+                const parsed = parseItems(tpl.items);
+                return (
+                  <div key={tpl.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-medium">{tpl.name}</div>
+                      <div className="text-xs text-gray-500">{parsed.length} items{tpl.deadline_minutes ? ` · ${tpl.deadline_minutes}min` : ""}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {parsed.slice(0, 8).map((item, idx) => (
+                        <span key={idx} className="px-2 py-0.5 bg-gray-800 rounded text-xs text-gray-400">
+                          {getItemText(item)}
+                        </span>
+                      ))}
+                      {parsed.length > 8 && (
+                        <span className="px-2 py-0.5 bg-gray-700 rounded text-xs text-gray-500">+{parsed.length - 8} more</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-        {closingTemplates.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">No closing templates</div>
-        ) : (
-          <div className="divide-y divide-gray-800">
-            {closingTemplates.map((tpl) => (
-              <div key={tpl.id} className="px-4 py-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium">{tpl.name}</div>
-                  <div className="text-xs text-gray-500">{tpl.items.length} items{tpl.deadline_minutes ? ` · ${tpl.deadline_minutes}min` : ""}</div>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {tpl.items.map((item, idx) => (
-                    <span key={idx} className="px-2 py-0.5 bg-gray-800 rounded text-xs text-gray-400">
-                      {typeof item === "string" ? item : (item as { task?: string }).task || JSON.stringify(item)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      ))}
     </div>
   );
 }

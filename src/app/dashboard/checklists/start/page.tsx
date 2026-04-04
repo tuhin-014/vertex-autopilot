@@ -3,13 +3,32 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+interface ChecklistItem {
+  task?: string;
+  required?: boolean;
+}
+
 interface Template {
   id: string;
   location_id: string | null;
   name: string;
   type: string;
-  items: string[];
+  items: ChecklistItem[] | string[] | string;
   deadline_minutes: number | null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseItems(items: any): any[] {
+  if (typeof items === 'string') {
+    try { return JSON.parse(items); } catch { return []; }
+  }
+  if (Array.isArray(items)) return items;
+  return [];
+}
+
+function getItemText(item: ChecklistItem | string): string {
+  if (typeof item === 'string') return item;
+  return item.task || JSON.stringify(item);
 }
 
 export default function StartChecklistPage() {
@@ -82,9 +101,9 @@ export default function StartChecklistPage() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium">{tpl.type === "opening" ? "🌅" : "🌙"} {tpl.name}</div>
+                  <div className="font-medium">{tpl.type === "opening" ? "🌅" : tpl.type === "closing" ? "🌙" : "🛡️"} {tpl.name}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {tpl.items.length} items · {tpl.type} checklist
+                    {parseItems(tpl.items).length} items · {tpl.type} checklist
                     {tpl.deadline_minutes ? ` · ${tpl.deadline_minutes}min deadline` : ""}
                   </div>
                 </div>
@@ -100,10 +119,10 @@ export default function StartChecklistPage() {
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
           <h2 className="font-semibold mb-3">Preview: {selectedTemplate.name}</h2>
           <div className="space-y-1">
-            {selectedTemplate.items.map((item, idx) => (
+            {parseItems(selectedTemplate.items).map((item, idx) => (
               <div key={idx} className="flex items-center gap-2 text-sm text-gray-400">
                 <span className="w-5 h-5 rounded border border-gray-700 shrink-0" />
-                {typeof item === "string" ? item : (item as { task?: string }).task || JSON.stringify(item)}
+                {getItemText(item)}
               </div>
             ))}
           </div>
