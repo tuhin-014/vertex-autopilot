@@ -1,9 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 import Link from "next/link";
-export const dynamic = "force-dynamic";
 import InvoiceActions from "./InvoiceActions";
-export const dynamic = "force-dynamic";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",

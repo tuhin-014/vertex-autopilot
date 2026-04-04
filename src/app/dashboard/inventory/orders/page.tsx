@@ -1,7 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 import Link from "next/link";
-export const dynamic = "force-dynamic";
 
 const statusColors: Record<string, string> = {
   draft: "bg-gray-500/20 text-gray-400 border-gray-500/30",

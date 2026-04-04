@@ -1,9 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 import Link from "next/link";
-export const dynamic = "force-dynamic";
 import AutoRefresh from "./components/AutoRefresh";
-export const dynamic = "force-dynamic";
 
 export default async function CommandCenter() {
   const supabase = createServiceClient();
