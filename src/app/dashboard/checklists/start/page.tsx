@@ -117,11 +117,15 @@ export default function StartChecklistPage() {
       {/* Preview selected template */}
       {selectedTemplate && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <h2 className="font-semibold mb-3">Preview: {selectedTemplate.name}</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold">Preview: {selectedTemplate.name}</h2>
+            <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">👁️ Read-only preview</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">Click "Start Checklist" below to begin checking off items.</p>
           <div className="space-y-1">
             {parseItems(selectedTemplate.items).map((item, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-sm text-gray-400">
-                <span className="w-5 h-5 rounded border border-gray-700 shrink-0" />
+              <div key={idx} className="flex items-center gap-2 text-sm text-gray-500">
+                <span className="text-gray-600 shrink-0">{idx + 1}.</span>
                 {getItemText(item)}
               </div>
             ))}

@@ -1,6 +1,24 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseTemplateItems(items: any): { task: string; completed: boolean; completed_at: null; photo_url: null; notes: null }[] {
+  // Handle JSON string
+  let parsed = items;
+  if (typeof items === 'string') {
+    try { parsed = JSON.parse(items); } catch { parsed = []; }
+  }
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.map((item: string | { task?: string; required?: boolean }) => ({
+    task: typeof item === 'string' ? item : (item.task || JSON.stringify(item)),
+    completed: false,
+    completed_at: null,
+    photo_url: null,
+    notes: null,
+  }));
+}
+
 export async function POST(request: Request) {
   const body = await request.json();
   const supabase = createServiceClient();
@@ -35,13 +53,7 @@ export async function POST(request: Request) {
       shift_date: today,
       shift_type: body.shift_type,
       status: "in_progress",
-      items_completed: (body.template_items || []).map((task: string) => ({
-        task,
-        completed: false,
-        completed_at: null,
-        photo_url: null,
-        notes: null,
-      })),
+      items_completed: parseTemplateItems(body.template_items || []),
       completion_pct: 0,
     })
     .select("*, checklist_templates:template_id(*)")
