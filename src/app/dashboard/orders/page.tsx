@@ -11,7 +11,9 @@ interface Order {
   subtotal: number;
   total: number;
   status: string;
-  notes: string | null;
+  special_instructions: string | null;
+  channel: string;
+  taken_by: string;
   created_at: string;
   updated_at: string;
   restaurant_id: string;
@@ -34,7 +36,7 @@ export default function AIOrdersPage() {
   const [stats, setStats] = useState({ total: 0, active: 0, completed: 0, revenue: 0 });
 
   const fetchOrders = useCallback(async () => {
-    const res = await fetch("/api/orderai/orders");
+    const res = await fetch("/api/orders");
     const json = await res.json();
     const data = json.orders;
 
@@ -57,10 +59,10 @@ export default function AIOrdersPage() {
   }, [fetchOrders]);
 
   const updateStatus = async (orderId: string, newStatus: string) => {
-    await fetch("/api/orderai/orders", {
+    await fetch(`/api/orders/${orderId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: orderId, status: newStatus }),
+      body: JSON.stringify({ status: newStatus }),
     });
     fetchOrders();
     if (selectedOrder?.id === orderId) setSelectedOrder({ ...selectedOrder, status: newStatus });
@@ -87,19 +89,19 @@ export default function AIOrdersPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border p-4">
+        <div className="bg-gray-900 rounded-xl border p-4">
           <p className="text-xs text-gray-500 uppercase font-medium">Total Orders</p>
           <p className="text-2xl font-bold mt-1">{stats.total}</p>
         </div>
-        <div className="bg-white rounded-xl border p-4">
+        <div className="bg-gray-900 rounded-xl border p-4">
           <p className="text-xs text-gray-500 uppercase font-medium">Active Now</p>
           <p className="text-2xl font-bold mt-1 text-blue-600">{stats.active}</p>
         </div>
-        <div className="bg-white rounded-xl border p-4">
+        <div className="bg-gray-900 rounded-xl border p-4">
           <p className="text-xs text-gray-500 uppercase font-medium">Completed</p>
           <p className="text-2xl font-bold mt-1 text-green-600">{stats.completed}</p>
         </div>
-        <div className="bg-white rounded-xl border p-4">
+        <div className="bg-gray-900 rounded-xl border p-4">
           <p className="text-xs text-gray-500 uppercase font-medium">Revenue</p>
           <p className="text-2xl font-bold mt-1 text-emerald-600">${stats.revenue.toFixed(2)}</p>
         </div>
@@ -122,7 +124,7 @@ export default function AIOrdersPage() {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
               filter === f.key
                 ? "bg-blue-600 text-white"
-                : "bg-white border text-gray-600 hover:bg-gray-50"
+                : "bg-gray-900 border text-gray-600 hover:bg-gray-800"
             }`}
           >
             {f.label} {f.key !== "all" && <span className="ml-1 opacity-70">({orders.filter((o) => o.status === f.key).length})</span>}
@@ -134,9 +136,9 @@ export default function AIOrdersPage() {
         {/* Orders List */}
         <div className="flex-1 space-y-2">
           {filtered.length === 0 ? (
-            <div className="bg-white rounded-xl border p-12 text-center">
+            <div className="bg-gray-900 rounded-xl border p-12 text-center">
               <p className="text-4xl mb-3">📋</p>
-              <p className="font-bold text-gray-900">No orders found</p>
+              <p className="font-bold text-white">No orders found</p>
               <p className="text-sm text-gray-500 mt-1">Orders will appear here when customers call in.</p>
             </div>
           ) : (
@@ -144,14 +146,14 @@ export default function AIOrdersPage() {
               <div
                 key={order.id}
                 onClick={() => setSelectedOrder(order)}
-                className={`bg-white rounded-xl border p-4 cursor-pointer transition hover:shadow-md ${
-                  selectedOrder?.id === order.id ? "ring-2 ring-blue-500 border-blue-200" : ""
+                className={`bg-gray-900 rounded-xl border p-4 cursor-pointer transition hover:shadow-md ${
+                  selectedOrder?.id === order.id ? "ring-2 ring-blue-500 border-blue-500/30" : ""
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-bold text-gray-400">#{order.order_number}</span>
-                    <span className="font-semibold text-gray-900">{order.customer_name || "Unknown"}</span>
+                    <span className="font-semibold text-white">{order.customer_name || "Unknown"}</span>
                   </div>
                   <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${STATUS_STYLES[order.status]?.bg || "bg-gray-100"} ${STATUS_STYLES[order.status]?.text || "text-gray-600"}`}>
                     {STATUS_STYLES[order.status]?.label || order.status}
@@ -162,7 +164,7 @@ export default function AIOrdersPage() {
                     {order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")}
                   </p>
                   <div className="flex items-center gap-3 text-gray-400 text-xs shrink-0">
-                    {order.total > 0 && <span className="font-medium text-gray-700">${order.total.toFixed(2)}</span>}
+                    {order.total > 0 && <span className="font-medium text-gray-300">${order.total.toFixed(2)}</span>}
                     <span>{timeAgo(order.created_at)}</span>
                   </div>
                 </div>
@@ -174,7 +176,7 @@ export default function AIOrdersPage() {
         {/* Order Detail Panel (desktop) */}
         {selectedOrder && (
           <div className="hidden lg:block w-96 shrink-0">
-            <div className="bg-white rounded-xl border p-6 sticky top-20">
+            <div className="bg-gray-900 rounded-xl border p-6 sticky top-20">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold">Order #{selectedOrder.order_number}</h3>
                 <button onClick={() => setSelectedOrder(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
@@ -182,7 +184,7 @@ export default function AIOrdersPage() {
 
               {/* Customer */}
               <div className="mb-4 pb-4 border-b">
-                <p className="font-semibold text-gray-900">{selectedOrder.customer_name || "Walk-in"}</p>
+                <p className="font-semibold text-white">{selectedOrder.customer_name || "Walk-in"}</p>
                 {selectedOrder.customer_phone && <p className="text-sm text-gray-500">{selectedOrder.customer_phone}</p>}
                 <p className="text-xs text-gray-400 mt-1">{new Date(selectedOrder.created_at).toLocaleString()}</p>
               </div>
@@ -212,12 +214,22 @@ export default function AIOrdersPage() {
               </div>
 
               {/* Notes */}
-              {selectedOrder.notes && (
+              {selectedOrder.special_instructions && (
                 <div className="mb-4 pb-4 border-b">
                   <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Notes</p>
-                  <p className="text-sm text-gray-700 bg-yellow-50 rounded-lg p-2">{selectedOrder.notes}</p>
+                  <p className="text-sm text-gray-300 bg-yellow-500/10 rounded-lg p-2">{selectedOrder.special_instructions}</p>
                 </div>
               )}
+
+              {/* Channel & Source */}
+              <div className="mb-4 pb-4 border-b">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Source</p>
+                <div className="flex items-center gap-2 text-sm">
+                  <span>{selectedOrder.channel === 'phone' ? '📞' : selectedOrder.channel === 'walk-in' ? '🚶' : selectedOrder.channel === 'online' ? '💻' : selectedOrder.channel === 'doordash' ? '🚗' : selectedOrder.channel === 'ubereats' ? '🛵' : '📋'}</span>
+                  <span className="capitalize">{selectedOrder.channel}</span>
+                  {selectedOrder.taken_by && <span className="text-gray-400">• {selectedOrder.taken_by}</span>}
+                </div>
+              </div>
 
               {/* Status Actions */}
               <div>
@@ -239,7 +251,7 @@ export default function AIOrdersPage() {
                     </button>
                   )}
                   {selectedOrder.status !== "cancelled" && selectedOrder.status !== "completed" && (
-                    <button onClick={() => updateStatus(selectedOrder.id, "cancelled")} className="px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition">
+                    <button onClick={() => updateStatus(selectedOrder.id, "cancelled")} className="px-3 py-2 rounded-lg border border-red-500/30 text-red-600 text-sm font-medium hover:bg-red-500/10 transition">
                       ✕ Cancel
                     </button>
                   )}
