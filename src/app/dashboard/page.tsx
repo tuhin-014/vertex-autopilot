@@ -1,9 +1,12 @@
-import { createServerComponentClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
 import Link from "next/link";
+export const dynamic = "force-dynamic";
 import AutoRefresh from "./components/AutoRefresh";
+export const dynamic = "force-dynamic";
 
 export default async function CommandCenter() {
-  const supabase = await createServerComponentClient();
+  const supabase = createServiceClient();
 
   const { data: locations } = await supabase.from("locations").select("id, name");
   const { data: events } = await supabase

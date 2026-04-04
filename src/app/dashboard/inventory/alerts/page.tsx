@@ -1,8 +1,10 @@
-import { createServerComponentClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
 import Link from "next/link";
+export const dynamic = "force-dynamic";
 
 export default async function InventoryAlertsPage() {
-  const supabase = await createServerComponentClient();
+  const supabase = createServiceClient();
 
   // Below-par items
   const { data: allItems } = await supabase

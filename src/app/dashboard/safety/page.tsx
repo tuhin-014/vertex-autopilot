@@ -1,7 +1,8 @@
-import { createServerComponentClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
 
 export default async function SafetyPage() {
-  const supabase = await createServerComponentClient();
+  const supabase = createServiceClient();
 
   // Get all locations with their data
   const { data: locations } = await supabase

@@ -1,5 +1,7 @@
-import { createServerComponentClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
 import Link from "next/link";
+export const dynamic = "force-dynamic";
 
 const parStatusColors: Record<string, string> = {
   ok: "bg-green-500/20 text-green-400",
@@ -16,7 +18,7 @@ const storageIcons: Record<string, string> = {
 };
 
 export default async function InventoryPage() {
-  const supabase = await createServerComponentClient();
+  const supabase = createServiceClient();
 
   const { data: items } = await supabase
     .from("inventory_items")

@@ -1,4 +1,5 @@
-import { createServerComponentClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
 
 const categoryColors: Record<string, string> = {
   food: "bg-green-500/20 text-green-400",
@@ -9,7 +10,7 @@ const categoryColors: Record<string, string> = {
 };
 
 export default async function VendorsPage() {
-  const supabase = await createServerComponentClient();
+  const supabase = createServiceClient();
 
   const { data: vendors } = await supabase
     .from("vendors")

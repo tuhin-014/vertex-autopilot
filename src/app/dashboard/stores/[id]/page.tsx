@@ -1,9 +1,11 @@
-import { createServerComponentClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
 import Link from "next/link";
+export const dynamic = "force-dynamic";
 
 export default async function StoreDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createServerComponentClient();
+  const supabase = createServiceClient();
 
   const { data: location } = await supabase.from("locations").select("*").eq("id", id).single();
   if (!location) return <div className="p-8 text-gray-400">Store not found</div>;

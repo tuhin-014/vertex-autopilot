@@ -1,8 +1,10 @@
-import { createServerComponentClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function StoresPage() {
-  const supabase = await createServerComponentClient();
+  const supabase = createServiceClient();
 
   const { data: locations } = await supabase.from("locations").select("*").order("name");
   const { data: employees } = await supabase.from("employees").select("location_id, role");
@@ -42,12 +44,13 @@ export default async function StoresPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold">📍 All Stores</h1>
-          <p className="text-gray-400">{stores.length} IHOP locations • Southeast Region</p>
+          <p className="text-gray-400">{stores.length} locations</p>
         </div>
-        <div className="flex gap-3 text-sm">
+        <div className="flex gap-3 items-center text-sm flex-wrap">
+          <Link href="/onboarding" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium text-sm transition">+ Add Store</Link>
           <span className="px-3 py-1 bg-red-600/10 border border-red-600/30 rounded-full text-red-400">🔴 {critical} Critical</span>
           <span className="px-3 py-1 bg-yellow-600/10 border border-yellow-600/30 rounded-full text-yellow-400">🟡 {warning} Warning</span>
           <span className="px-3 py-1 bg-green-600/10 border border-green-600/30 rounded-full text-green-400">🟢 {healthy} Healthy</span>

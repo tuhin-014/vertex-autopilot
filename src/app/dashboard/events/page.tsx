@@ -1,7 +1,8 @@
-import { createServerComponentClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
 
 export default async function EventsPage() {
-  const supabase = await createServerComponentClient();
+  const supabase = createServiceClient();
   const { data: events } = await supabase
     .from("agent_events")
     .select("*")

@@ -1,5 +1,7 @@
-import { createServerComponentClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
 import Link from "next/link";
+export const dynamic = "force-dynamic";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
@@ -9,7 +11,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default async function InvoicesPage() {
-  const supabase = await createServerComponentClient();
+  const supabase = createServiceClient();
 
   const { data: invoices } = await supabase
     .from("invoices")
