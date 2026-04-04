@@ -98,7 +98,13 @@ export async function POST(request: Request) {
   let smsSent = false;
   if (order.customer_phone && TWILIO_SID && TWILIO_TOKEN) {
     try {
-      const smsBody = `Hi ${order.customer_name || "there"}! Your order #${order.order_number} is $${order.total.toFixed(2)}. Pay securely here: ${session.url}\n\nThank you! — IHOP`;
+      // Build SMS body with item breakdown
+      const itemLines = (order.items || []).map(
+        (item: { name?: string; price?: number; quantity?: number; qty?: number }) =>
+          `• ${item.name || "Item"} — $${(item.price || 0).toFixed(2)}`
+      );
+      const taxAmount = (order.tax as number) || (order.total - (order.subtotal || 0));
+      const smsBody = `Hi ${order.customer_name || "there"}! Your order #${order.order_number}:\n${itemLines.join("\n")}\n• Tax — $${taxAmount.toFixed(2)}\nTotal due: $${order.total.toFixed(2)}\n\nPay here: ${session.url}\n\nThank you! — IHOP`;
       
       const twilioRes = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
