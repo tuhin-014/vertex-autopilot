@@ -7,7 +7,8 @@ interface Order {
   order_number: string;
   customer_name: string;
   customer_phone: string;
-  items: { name: string; quantity: number; price: number; modifications?: string[] }[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  items: any[];
   subtotal: number;
   total: number;
   status: string;
@@ -161,7 +162,7 @@ export default function AIOrdersPage() {
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <p className="text-gray-500 truncate max-w-[60%]">
-                    {order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")}
+                    {order.items.map((i) => `${i.quantity ?? ''}x ${i.name ?? ''}`).filter(s => !s.startsWith('undefinedx')).join(", ") || 'View details'}
                   </p>
                   <div className="flex items-center gap-3 text-gray-400 text-xs shrink-0">
                     {order.total > 0 && <span className="font-medium text-gray-300">${order.total.toFixed(2)}</span>}
@@ -193,17 +194,22 @@ export default function AIOrdersPage() {
               <div className="mb-4 pb-4 border-b">
                 <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Items</p>
                 <div className="space-y-2">
-                  {selectedOrder.items.map((item, i) => (
-                    <div key={i} className="flex justify-between text-sm">
-                      <span>
-                        <span className="font-medium">{item.quantity}x</span> {item.name}
-                        {item.modifications && item.modifications.length > 0 && (
-                          <span className="text-xs text-gray-400 block ml-5">{item.modifications.join(", ")}</span>
-                        )}
-                      </span>
-                      {item.price > 0 && <span className="text-gray-600">${(item.price * item.quantity).toFixed(2)}</span>}
-                    </div>
-                  ))}
+                  {selectedOrder.items.map((item: { name?: string; quantity?: number; qty?: number; price?: number; modifications?: string[] }, i: number) => {
+                    const qty = item.quantity || item.qty || 1;
+                    const name = item.name || 'Item';
+                    const price = item.price || 0;
+                    return (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span>
+                          <span className="font-medium">{qty}x</span> {name}
+                          {item.modifications && item.modifications.length > 0 && (
+                            <span className="text-xs text-gray-400 block ml-5">{item.modifications.join(", ")}</span>
+                          )}
+                        </span>
+                        {price > 0 && <span className="text-gray-600">${(price * qty).toFixed(2)}</span>}
+                      </div>
+                    );
+                  })}
                 </div>
                 {selectedOrder.total > 0 && (
                   <div className="flex justify-between text-sm font-bold mt-3 pt-2 border-t">
@@ -235,12 +241,12 @@ export default function AIOrdersPage() {
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Update Status</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {selectedOrder.status !== "preparing" && selectedOrder.status !== "completed" && selectedOrder.status !== "cancelled" && (
+                  {(selectedOrder.status === "new" || selectedOrder.status === "pending") && (
                     <button onClick={() => updateStatus(selectedOrder.id, "preparing")} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition">
                       👨‍🍳 Start Prep
                     </button>
                   )}
-                  {selectedOrder.status !== "ready" && selectedOrder.status !== "completed" && selectedOrder.status !== "cancelled" && (
+                  {(selectedOrder.status === "new" || selectedOrder.status === "pending" || selectedOrder.status === "preparing") && (
                     <button onClick={() => updateStatus(selectedOrder.id, "ready")} className="px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition">
                       ✅ Mark Ready
                     </button>
