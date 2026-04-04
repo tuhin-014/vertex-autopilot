@@ -47,13 +47,14 @@ export default function ActivityLogPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/temp-logs?limit=50").then(r => r.json()),
-      fetch("/api/checklists/history").then(r => r.json()).catch(() => ({ completions: [] })),
-      fetch("/api/orders").then(r => r.json()),
+      fetch("/api/temp-logs?limit=50").then(r => r.json()).catch(() => ({})),
+      fetch("/api/checklists/history").then(r => r.json()).catch(() => ({})),
+      fetch("/api/orders").then(r => r.json()).catch(() => ({})),
     ]).then(([tData, cData, oData]) => {
-      setTempLogs(tData.logs || tData || []);
-      setChecklists(cData.completions || []);
-      setOrders(oData.orders || []);
+      // Handle various API response shapes
+      setTempLogs(Array.isArray(tData) ? tData : tData.logs || tData.data || []);
+      setChecklists(Array.isArray(cData) ? cData : cData.completions || cData.data || []);
+      setOrders(Array.isArray(oData) ? oData : oData.orders || oData.data || []);
       setLoading(false);
     });
   }, []);
