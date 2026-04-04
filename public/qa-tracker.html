@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vertex Autopilot — QA Test Tracker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0F172A;color:#E2E8F0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1E293B,#0F172A);border-bottom:2px solid #2563EB;padding:24px 32px;position:sticky;top:0;z-index:100}
+.header h1{font-size:24px;color:white;display:flex;align-items:center;gap:12px}
+.header h1 span{font-size:28px}
+.stats-bar{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.stat{background:#1E293B;border:1px solid #374151;border-radius:8px;padding:8px 16px;font-size:13px}
+.stat .num{font-weight:bold;font-size:18px;margin-right:4px}
+.stat.pass .num{color:#22C55E}
+.stat.fail .num{color:#EF4444}
+.stat.skip .num{color:#F59E0B}
+.stat.total .num{color:#22D3EE}
+.controls{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+.controls button{padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:600}
+.btn-export{background:#2563EB;color:white}
+.btn-reset{background:#374151;color:#94A3B8}
+.btn-expand{background:#374151;color:#94A3B8}
+.btn-filter{background:#1E293B;color:#94A3B8;border:1px solid #374151 !important}
+.btn-filter.active{background:#2563EB;color:white;border-color:#2563EB !important}
+.container{max-width:1200px;margin:0 auto;padding:24px}
+.section{margin-bottom:32px;background:#1E293B;border-radius:12px;overflow:hidden;border:1px solid #374151}
+.section-header{padding:16px 20px;background:#1E293B;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #374151}
+.section-header:hover{background:#263549}
+.section-header h2{font-size:16px;color:#22D3EE;display:flex;align-items:center;gap:8px}
+.section-header .badge{font-size:12px;background:#374151;padding:2px 8px;border-radius:10px;color:#94A3B8}
+.section-header .progress{font-size:13px;color:#94A3B8}
+.section-body{display:none}
+.section-body.open{display:block}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 12px;font-size:12px;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;background:#0F172A;position:sticky;top:0}
+td{padding:10px 12px;border-top:1px solid #1E293B;font-size:14px;vertical-align:top}
+tr:hover td{background:#263549}
+.test-id{color:#64748B;font-family:monospace;font-size:12px;white-space:nowrap}
+.priority{font-size:11px;font-weight:bold;padding:2px 6px;border-radius:4px}
+.priority.p0{background:#7F1D1D;color:#FCA5A5}
+.priority.p1{background:#78350F;color:#FDE68A}
+.priority.p2{background:#1E3A5F;color:#93C5FD}
+.status-cell{min-width:120px}
+.status-select{background:#0F172A;color:#E2E8F0;border:1px solid #374151;border-radius:6px;padding:6px 10px;font-size:13px;width:100%;cursor:pointer}
+.status-select.pass{border-color:#22C55E;color:#22C55E}
+.status-select.fail{border-color:#EF4444;color:#EF4444}
+.status-select.skip{border-color:#F59E0B;color:#F59E0B}
+.status-select.blocked{border-color:#A855F7;color:#A855F7}
+.comment-input{background:#0F172A;color:#E2E8F0;border:1px solid #374151;border-radius:6px;padding:6px 10px;font-size:13px;width:100%;min-width:200px;resize:vertical}
+.comment-input:focus,.status-select:focus{outline:none;border-color:#2563EB}
+.progress-bar{height:4px;background:#374151;border-radius:2px;overflow:hidden;width:120px}
+.progress-fill{height:100%;background:#22C55E;border-radius:2px;transition:width 0.3s}
+.search{background:#0F172A;color:#E2E8F0;border:1px solid #374151;border-radius:6px;padding:8px 16px;font-size:14px;width:300px}
+.search:focus{outline:none;border-color:#2563EB}
+@media(max-width:768px){
+  .stats-bar{gap:8px}
+  .stat{padding:6px 10px;font-size:12px}
+  .stat .num{font-size:14px}
+  .comment-input{min-width:120px}
+  .controls{gap:8px}
+  td,th{padding:8px 6px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>🤖</span> Vertex Autopilot — QA Test Tracker</h1>
+  <div class="stats-bar">
+    <div class="stat total">📊 Total: <span class="num" id="total-count">0</span></div>
+    <div class="stat pass">✅ Pass: <span class="num" id="pass-count">0</span></div>
+    <div class="stat fail">❌ Fail: <span class="num" id="fail-count">0</span></div>
+    <div class="stat skip">⏭️ Skip: <span class="num" id="skip-count">0</span></div>
+    <div class="stat">📝 Not Run: <span class="num" id="notrun-count">0</span></div>
+    <div class="stat">
+      <div class="progress-bar" style="width:200px;height:8px;margin-top:2px">
+        <div class="progress-fill" id="overall-progress" style="width:0%"></div>
+      </div>
+      <span id="progress-pct" style="font-size:12px;color:#94A3B8">0%</span>
+    </div>
+  </div>
+  <div class="controls">
+    <input type="text" class="search" placeholder="🔍 Search tests..." id="search-input">
+    <button class="btn-filter active" data-filter="all" onclick="filterTests('all',this)">All</button>
+    <button class="btn-filter" data-filter="not-run" onclick="filterTests('not-run',this)">Not Run</button>
+    <button class="btn-filter" data-filter="pass" onclick="filterTests('pass',this)">Pass</button>
+    <button class="btn-filter" data-filter="fail" onclick="filterTests('fail',this)">Fail</button>
+    <button class="btn-export" onclick="exportCSV()">📥 Export CSV</button>
+    <button class="btn-export" onclick="exportJSON()">💾 Save Progress</button>
+    <button class="btn-expand" onclick="toggleAll()">📂 Expand All</button>
+    <button class="btn-reset" onclick="resetAll()">🔄 Reset All</button>
+  </div>
+</div>
+
+<div class="container" id="test-container"></div>
+
+<script>
+const TEST_DATA = [
+  {
+    name: "A. Authentication & Public Pages",
+    icon: "🔑",
+    tests: [
+      {id:"QA-001",test:"Landing page loads",steps:"Go to /",expected:"Hero section, features, pricing CTA visible",p:"P0"},
+      {id:"QA-002",test:"Login page loads",steps:"Go to /login",expected:"Email/password form + Google button visible",p:"P0"},
+      {id:"QA-003",test:"Google Sign-In",steps:"Click Google → complete OAuth",expected:"Redirected to /dashboard",p:"P0"},
+      {id:"QA-004",test:"Email Sign Up",steps:"Enter new email + password → Sign up",expected:"Account created, redirected to /dashboard",p:"P0"},
+      {id:"QA-005",test:"Email Login",steps:"Enter existing credentials → Sign in",expected:"Logged in, redirected to /dashboard",p:"P0"},
+      {id:"QA-006",test:"Invalid login attempt",steps:"Enter wrong password",expected:"Error message shown, no login",p:"P0"},
+      {id:"QA-007",test:"Pricing page",steps:"Go to /pricing",expected:"3 plans visible, '14 Agents' text shown",p:"P1"},
+      {id:"QA-008",test:"Privacy page",steps:"Go to /privacy",expected:"Privacy policy content loads",p:"P2"},
+    ]
+  },
+  {
+    name: "B. Command Center Dashboard",
+    icon: "🎯",
+    tests: [
+      {id:"QA-009",test:"Dashboard loads",steps:"Go to /dashboard",expected:"Stats cards, agent feed, approvals visible",p:"P0"},
+      {id:"QA-010",test:"Stats accuracy",steps:"Compare cards to /api/dashboard/stats",expected:"Numbers match API response",p:"P0"},
+      {id:"QA-011",test:"Agent activity feed",steps:"Scroll activity feed",expected:"Events show with timestamps + severity badges",p:"P0"},
+      {id:"QA-012",test:"Pending approvals section",steps:"Check approvals area",expected:"Approve/reject buttons visible if items exist",p:"P0"},
+      {id:"QA-013",test:"Sidebar navigation (15 items)",steps:"Check all nav items",expected:"All present: Command Center → Settings",p:"P0"},
+      {id:"QA-014",test:"Agent count badge",steps:"Check sidebar footer",expected:"'14 agents active' with green dot",p:"P0"},
+      {id:"QA-015",test:"Mobile hamburger menu",steps:"Resize to mobile → tap hamburger",expected:"Menu opens, all items accessible",p:"P1"},
+    ]
+  },
+  {
+    name: "C. All Stores",
+    icon: "📍",
+    tests: [
+      {id:"QA-016",test:"Store grid loads",steps:"Go to /dashboard/stores",expected:"Store cards with safety scores visible",p:"P0"},
+      {id:"QA-017",test:"Status badges colors",steps:"Check card colors",expected:"Critical=red, Warning=yellow, Healthy=green",p:"P0"},
+      {id:"QA-018",test:"Staffing progress bars",steps:"Check progress bars",expected:"Per-role staffing % shown",p:"P0"},
+      {id:"QA-019",test:"Store drill-down",steps:"Click a store card",expected:"/dashboard/stores/[id] loads with detail",p:"P0"},
+      {id:"QA-020",test:"Store detail sections",steps:"Check detail page tabs",expected:"Employees, certs, staffing, temp logs, corrective actions, candidates",p:"P0"},
+    ]
+  },
+  {
+    name: "D. Orders",
+    icon: "📞",
+    tests: [
+      {id:"QA-021",test:"Order queue",steps:"Go to /dashboard/orders",expected:"Active orders listed with status",p:"P0"},
+      {id:"QA-022",test:"Create new order",steps:"Go to /dashboard/orders/new → fill form → submit",expected:"Order appears in queue",p:"P0"},
+      {id:"QA-023",test:"Order history",steps:"Go to /dashboard/orders/history",expected:"Past orders visible and searchable",p:"P1"},
+      {id:"QA-024",test:"Order analytics",steps:"Go to /dashboard/orders/analytics",expected:"Charts and stats load",p:"P1"},
+      {id:"QA-025",test:"Order issues",steps:"Go to /dashboard/orders/issues",expected:"Reported issues visible",p:"P1"},
+    ]
+  },
+  {
+    name: "E. Menu Management",
+    icon: "🍽️",
+    tests: [
+      {id:"QA-026",test:"Menu list",steps:"Go to /dashboard/menu",expected:"Items grouped by category",p:"P0"},
+      {id:"QA-027",test:"Add menu item",steps:"Click add → fill form → save",expected:"Item appears in list",p:"P1"},
+      {id:"QA-028",test:"Edit menu item",steps:"Click item → modify → save",expected:"Changes reflected",p:"P1"},
+      {id:"QA-029",test:"Toggle availability",steps:"Toggle item on/off",expected:"Status updates immediately",p:"P1"},
+    ]
+  },
+  {
+    name: "F. Checklists",
+    icon: "✅",
+    tests: [
+      {id:"QA-030",test:"Checklists page",steps:"Go to /dashboard/checklists",expected:"Active checklists visible",p:"P0"},
+      {id:"QA-031",test:"Templates list",steps:"Go to /dashboard/checklists/templates",expected:"Opening/closing/safety templates",p:"P0"},
+      {id:"QA-032",test:"Start a checklist",steps:"Go to /dashboard/checklists/start → select template",expected:"Checklist begins with items",p:"P0"},
+      {id:"QA-033",test:"Complete checklist items",steps:"Check off items one by one",expected:"Completion % updates in real-time",p:"P0"},
+      {id:"QA-034",test:"Checklist detail page",steps:"Go to /dashboard/checklists/[id]",expected:"Item-by-item status visible",p:"P1"},
+      {id:"QA-035",test:"Checklist history",steps:"Go to /dashboard/checklists/history",expected:"Past completions with details",p:"P1"},
+    ]
+  },
+  {
+    name: "G. Food Safety",
+    icon: "🛡️",
+    tests: [
+      {id:"QA-036",test:"Safety dashboard",steps:"Go to /dashboard/safety",expected:"Temp logs, certs, corrective actions",p:"P0"},
+      {id:"QA-037",test:"Temp log entries",steps:"Check temp log list",expected:"Equipment, temp, time, status visible",p:"P0"},
+      {id:"QA-038",test:"Violations flagged red",steps:"Check out-of-range temps",expected:"Highlighted in RED with alert icon",p:"P0"},
+      {id:"QA-039",test:"Certifications list",steps:"Check cert list",expected:"Expiry dates with urgency colors",p:"P0"},
+      {id:"QA-040",test:"Corrective actions",steps:"Check actions list",expected:"Open/resolved with due dates and assignees",p:"P0"},
+    ]
+  },
+  {
+    name: "H. Hiring",
+    icon: "👥",
+    tests: [
+      {id:"QA-041",test:"Pipeline funnel view",steps:"Go to /dashboard/hiring",expected:"Funnel: Applied→Screened→Interview→Offered→Hired",p:"P0"},
+      {id:"QA-042",test:"Candidate table",steps:"Check candidate table",expected:"AI scores, status, role visible",p:"P0"},
+      {id:"QA-043",test:"Advance/reject candidate",steps:"Click candidate → use buttons",expected:"Status changes, pipeline counts update",p:"P0"},
+      {id:"QA-044",test:"Job postings",steps:"Check job postings section",expected:"Location, role, source, status visible",p:"P1"},
+      {id:"QA-045",test:"Staffing health bars",steps:"Check staffing bars",expected:"Current vs target per role",p:"P0"},
+    ]
+  },
+  {
+    name: "I. Invoices",
+    icon: "💰",
+    tests: [
+      {id:"QA-046",test:"Invoice list",steps:"Go to /dashboard/invoices",expected:"Invoices with status badges",p:"P0"},
+      {id:"QA-047",test:"Invoice detail",steps:"Click invoice",expected:"Line items, total, vendor info",p:"P0"},
+      {id:"QA-048",test:"Upload invoice",steps:"Go to /dashboard/invoices/upload → upload file",expected:"File processed and parsed",p:"P1"},
+      {id:"QA-049",test:"Price alerts",steps:"Go to /dashboard/invoices/price-alerts",expected:"Price change alerts shown",p:"P1"},
+      {id:"QA-050",test:"Invoice actions",steps:"Approve/dispute/mark-paid buttons",expected:"Status updates correctly",p:"P0"},
+    ]
+  },
+  {
+    name: "J. Vendors",
+    icon: "🏢",
+    tests: [
+      {id:"QA-051",test:"Vendor list",steps:"Go to /dashboard/vendors",expected:"Vendors with contact info",p:"P0"},
+      {id:"QA-052",test:"Add vendor",steps:"Click add → fill form → save",expected:"Vendor appears in list",p:"P1"},
+      {id:"QA-053",test:"Vendor detail",steps:"Click vendor",expected:"Invoice history, price trends",p:"P1"},
+    ]
+  },
+  {
+    name: "K. Inventory",
+    icon: "📦",
+    tests: [
+      {id:"QA-054",test:"Inventory list",steps:"Go to /dashboard/inventory",expected:"Items with quantities and par levels",p:"P0"},
+      {id:"QA-055",test:"Inventory alerts",steps:"Go to /dashboard/inventory/alerts",expected:"Below-par + expiring items flagged",p:"P0"},
+      {id:"QA-056",test:"Physical count",steps:"Go to /dashboard/inventory/count → enter counts",expected:"Variance calculated and shown",p:"P1"},
+      {id:"QA-057",test:"Purchase orders",steps:"Go to /dashboard/inventory/orders",expected:"POs with status",p:"P1"},
+      {id:"QA-058",test:"Waste tracking link",steps:"Go to /dashboard/inventory/waste",expected:"Waste logging form works",p:"P1"},
+    ]
+  },
+  {
+    name: "L. Waste Management",
+    icon: "🗑️",
+    tests: [
+      {id:"QA-059",test:"Waste dashboard",steps:"Go to /dashboard/waste",expected:"Summary, top wasted items, cost",p:"P0"},
+      {id:"QA-060",test:"Log waste entry",steps:"Go to /dashboard/waste/log → add entry",expected:"Entry saved with cost",p:"P0"},
+      {id:"QA-061",test:"Prep targets",steps:"Go to /dashboard/waste/prep",expected:"AI-suggested quantities per item",p:"P1"},
+      {id:"QA-062",test:"Waste reports",steps:"Go to /dashboard/waste/reports",expected:"Weekly/monthly reports with trends",p:"P1"},
+    ]
+  },
+  {
+    name: "M. Financials",
+    icon: "💵",
+    tests: [
+      {id:"QA-063",test:"Financial overview",steps:"Go to /dashboard/financials",expected:"P&L, food cost %, labor cost %",p:"P0"},
+      {id:"QA-064",test:"Daily tracker",steps:"Go to /dashboard/financials/daily",expected:"Daily revenue, costs, profit",p:"P0"},
+      {id:"QA-065",test:"Expenses by category",steps:"Go to /dashboard/financials/expenses",expected:"Expenses grouped with budgets",p:"P1"},
+      {id:"QA-066",test:"Revenue forecast",steps:"Go to /dashboard/financials/forecast",expected:"30/60/90 day projections",p:"P1"},
+      {id:"QA-067",test:"Financial reports",steps:"Go to /dashboard/financials/reports",expected:"P&L report generation",p:"P1"},
+    ]
+  },
+  {
+    name: "N. Agent Activity",
+    icon: "📋",
+    tests: [
+      {id:"QA-068",test:"Event log",steps:"Go to /dashboard/events",expected:"All agent events with filters",p:"P0"},
+      {id:"QA-069",test:"Filter by agent type",steps:"Select agent type filter",expected:"Only matching events shown",p:"P1"},
+      {id:"QA-070",test:"Filter by severity",steps:"Select severity filter",expected:"Correct events shown",p:"P1"},
+      {id:"QA-071",test:"Event detail",steps:"Click event row",expected:"Full description + metadata",p:"P1"},
+    ]
+  },
+  {
+    name: "O. Approvals",
+    icon: "🔔",
+    tests: [
+      {id:"QA-072",test:"Approval queue",steps:"Go to /dashboard/approvals",expected:"Pending items listed",p:"P0"},
+      {id:"QA-073",test:"Approve item",steps:"Click Approve button",expected:"Status changes, removed from queue",p:"P0"},
+      {id:"QA-074",test:"Reject item",steps:"Click Reject button",expected:"Status changes, removed from queue",p:"P0"},
+    ]
+  },
+  {
+    name: "P. Settings",
+    icon: "⚙️",
+    tests: [
+      {id:"QA-075",test:"Settings page loads",steps:"Go to /dashboard/settings",expected:"All 14 agents listed with toggles",p:"P0"},
+      {id:"QA-076",test:"Toggle agent on/off",steps:"Click agent toggle",expected:"Status updates",p:"P1"},
+      {id:"QA-077",test:"Run All 14 Agents",steps:"Click 'Run All 14 Agents' button",expected:"API returns results for all 14",p:"P0"},
+      {id:"QA-078",test:"Notification preferences",steps:"Check notification toggles",expected:"SMS/Email per severity configurable",p:"P1"},
+      {id:"QA-079",test:"Integration status",steps:"Check connection statuses",expected:"Twilio ✅, Resend ✅, Stripe ✅",p:"P1"},
+    ]
+  },
+  {
+    name: "Q. API & Integrations",
+    icon: "🔗",
+    tests: [
+      {id:"QA-080",test:"Health check endpoint",steps:"GET /api/health",expected:"10/10 checks pass",p:"P0"},
+      {id:"QA-081",test:"Run all agents endpoint",steps:"GET /api/agents/run-all",expected:"14 agent results in JSON",p:"P0"},
+      {id:"QA-082",test:"CSV export (employees)",steps:"GET /api/export/employees",expected:"CSV file downloads with data",p:"P1"},
+      {id:"QA-083",test:"Audit log",steps:"GET /api/audit",expected:"Audit entries returned",p:"P1"},
+    ]
+  },
+  {
+    name: "R. 14 AI Agents",
+    icon: "🤖",
+    tests: [
+      {id:"AG-001",test:"Food Safety agent runs",steps:"Trigger /api/cron/check-temps",expected:"Detects missed logs, violations, expiring certs",p:"P0"},
+      {id:"AG-002",test:"Hiring agent runs",steps:"Trigger /api/cron/screen-candidates",expected:"Scores candidates, detects understaffing",p:"P0"},
+      {id:"AG-003",test:"Staffing agent runs",steps:"Trigger /api/cron/check-staffing",expected:"Detects understaffing, predicts busy days",p:"P0"},
+      {id:"AG-004",test:"Spend Optimizer runs",steps:"Part of run-all",expected:"Detects spending anomalies",p:"P1"},
+      {id:"AG-005",test:"Revenue Optimizer runs",steps:"Part of run-all",expected:"Weather-based recommendations",p:"P1"},
+      {id:"AG-006",test:"Cross-Product agent",steps:"Part of run-all",expected:"Safety↔staffing correlations, high-risk stores",p:"P0"},
+      {id:"AG-007",test:"Accountant agent",steps:"Trigger /api/cron/check-financials",expected:"P&L monitoring, threshold alerts",p:"P1"},
+      {id:"AG-008",test:"Checklist agent",steps:"Trigger /api/cron/check-checklists",expected:"Detects missed/incomplete checklists",p:"P1"},
+      {id:"AG-009",test:"Inventory agent",steps:"Trigger /api/cron/check-inventory",expected:"Below-par alerts, expiring items",p:"P0"},
+      {id:"AG-010",test:"Invoice agent",steps:"Trigger /api/cron/check-invoices",expected:"Overdue invoices, price anomalies",p:"P1"},
+      {id:"AG-011",test:"Marketing agent",steps:"Part of run-all",expected:"Slow day analysis, campaign suggestions",p:"P2"},
+      {id:"AG-012",test:"Order agent",steps:"Trigger /api/cron/check-orders",expected:"Stale order detection",p:"P1"},
+      {id:"AG-013",test:"Review agent",steps:"Part of run-all",expected:"Negative review alerts, AI responses",p:"P2"},
+      {id:"AG-014",test:"Waste agent",steps:"Trigger /api/cron/check-waste",expected:"High waste detection, trend analysis",p:"P1"},
+    ]
+  },
+  {
+    name: "S. Notifications",
+    icon: "📱",
+    tests: [
+      {id:"NT-001",test:"Critical SMS delivery",steps:"Trigger temp violation",expected:"Cook receives SMS with temp details",p:"P0"},
+      {id:"NT-002",test:"Warning SMS delivery",steps:"Trigger understaffing",expected:"Manager receives staffing alert",p:"P0"},
+      {id:"NT-003",test:"Cert expiry email",steps:"Cert <30 days out",expected:"Employee gets HTML email from hello@vertexlabsolutions.com",p:"P0"},
+      {id:"NT-004",test:"Corrective action escalation",steps:">48h overdue action",expected:"Manager gets escalation SMS",p:"P1"},
+      {id:"NT-005",test:"SMS from correct number",steps:"Any SMS trigger",expected:"From: +14788007647",p:"P0"},
+      {id:"NT-006",test:"Email from correct address",steps:"Any email trigger",expected:"From: hello@vertexlabsolutions.com",p:"P0"},
+    ]
+  },
+  {
+    name: "T. Security",
+    icon: "🔒",
+    tests: [
+      {id:"SC-001",test:"Auth guard on /dashboard",steps:"Open /dashboard without login",expected:"302 redirect to /login",p:"P0"},
+      {id:"SC-002",test:"Service role key hidden",steps:"Check browser network tab",expected:"Key not exposed to client-side",p:"P0"},
+      {id:"SC-003",test:"SQL injection prevention",steps:"Enter '; DROP TABLE -- in inputs",expected:"Input sanitized, no SQL execution",p:"P0"},
+      {id:"SC-004",test:"XSS prevention",steps:"Enter <script>alert(1)</script> in fields",expected:"Script not executed, escaped",p:"P0"},
+      {id:"SC-005",test:"HTTPS enforcement",steps:"Try HTTP URL",expected:"Redirects to HTTPS",p:"P0"},
+      {id:"SC-006",test:"RLS enforcement",steps:"Query Supabase with anon key",expected:"Only permitted rows returned",p:"P0"},
+    ]
+  },
+  {
+    name: "U. Performance",
+    icon: "⚡",
+    tests: [
+      {id:"PF-001",test:"Dashboard load time",steps:"Load /dashboard, measure TTI",expected:"< 3 seconds",p:"P1"},
+      {id:"PF-002",test:"Store grid (30 stores)",steps:"Load /dashboard/stores, measure render",expected:"< 2 seconds",p:"P1"},
+      {id:"PF-003",test:"API response time",steps:"GET /api/dashboard/stats, measure",expected:"< 1 second",p:"P1"},
+      {id:"PF-004",test:"Run all 14 agents",steps:"GET /api/agents/run-all, measure",expected:"< 60 seconds total",p:"P1"},
+      {id:"PF-005",test:"Mobile Lighthouse score",steps:"Run Lighthouse on mobile",expected:"> 70 performance score",p:"P2"},
+    ]
+  },
+  {
+    name: "V. Responsive & Cross-Browser",
+    icon: "📱",
+    tests: [
+      {id:"RD-001",test:"Mobile layout (375px)",steps:"Resize to 375px width",expected:"Cards stack, no overflow, hamburger nav",p:"P1"},
+      {id:"RD-002",test:"Tablet layout (768px)",steps:"Resize to 768px width",expected:"Proper grid, sidebar collapses",p:"P1"},
+      {id:"RD-003",test:"Desktop layout (1920px)",steps:"Full width",expected:"Sidebar visible, multi-column grids",p:"P0"},
+      {id:"RD-004",test:"Chrome desktop",steps:"Test all pages in Chrome",expected:"No console errors, all pages load",p:"P0"},
+      {id:"RD-005",test:"Safari desktop",steps:"Test all pages in Safari",expected:"No layout breaks",p:"P1"},
+      {id:"RD-006",test:"Chrome Android",steps:"Test on Android phone",expected:"Touch targets work, scrolling smooth",p:"P1"},
+      {id:"RD-007",test:"Safari iPhone",steps:"Test on iPhone",expected:"Touch targets work, scrolling smooth",p:"P1"},
+    ]
+  },
+  {
+    name: "W. Edge Cases",
+    icon: "🚨",
+    tests: [
+      {id:"EC-001",test:"Empty state handling",steps:"Location with no data",expected:"Graceful empty states, no crashes",p:"P0"},
+      {id:"EC-002",test:"404 page",steps:"Go to /dashboard/nonexistent",expected:"Graceful error page",p:"P1"},
+      {id:"EC-003",test:"Slow network",steps:"Throttle to 3G in DevTools",expected:"Loading states visible, no timeouts",p:"P2"},
+      {id:"EC-004",test:"Double-click prevention",steps:"Rapidly click submit buttons",expected:"No duplicate submissions",p:"P1"},
+      {id:"EC-005",test:"Session expiry",steps:"Leave idle, return after expiry",expected:"Redirected to login gracefully",p:"P1"},
+    ]
+  },
+  {
+    name: "X. Billing & Stripe",
+    icon: "💳",
+    tests: [
+      {id:"BL-001",test:"Pricing page plans",steps:"Go to /pricing",expected:"Starter $49, Pro $149, Enterprise $499",p:"P0"},
+      {id:"BL-002",test:"Stripe checkout opens",steps:"Click Get Started on a plan",expected:"Stripe checkout page loads",p:"P0"},
+      {id:"BL-003",test:"Payment completes",steps:"Use test card 4242...4242",expected:"Subscription active, redirect to dashboard",p:"P1"},
+      {id:"BL-004",test:"Customer portal",steps:"Go to billing settings",expected:"Stripe portal opens for plan management",p:"P1"},
+    ]
+  },
+  {
+    name: "Y. E2E: Full User Journeys",
+    icon: "🔗",
+    tests: [
+      {id:"E2E-001",test:"Onboarding → First Agent Run",steps:"Sign up → Dashboard → Settings → Run All Agents → Check events",expected:"New user can run agents within 2 minutes of sign up",p:"P0"},
+      {id:"E2E-002",test:"Food Safety Violation → Resolution",steps:"Log bad temp → Agent detects → SMS sent → Corrective action created → Resolve",expected:"Full violation lifecycle tracked end-to-end",p:"P0"},
+      {id:"E2E-003",test:"Hiring Pipeline → Offer → Onboarding",steps:"Screen candidates → Interview → Offer → E-signature → Hired",expected:"Candidate goes from application to hired",p:"P0"},
+      {id:"E2E-004",test:"Invoice → Price Alert → Vendor",steps:"Upload invoice → Approve → Check price alerts → Review vendor",expected:"Invoice lifecycle with price monitoring",p:"P1"},
+      {id:"E2E-005",test:"Inventory → Restock Cycle",steps:"Check alerts → Create PO → Approve → Physical count → Verify",expected:"Inventory replenished through full cycle",p:"P1"},
+      {id:"E2E-006",test:"Daily Operations Cycle",steps:"Opening checklist → Temp logs → Orders → Waste → Closing checklist → Daily P&L",expected:"Complete day of operations tracked",p:"P0"},
+      {id:"E2E-007",test:"Multi-Store Regional Overview",steps:"Dashboard → Stores grid → Worst store → Financials → Export → Events",expected:"Regional manager gets full picture across 30 stores",p:"P0"},
+      {id:"E2E-008",test:"Waste Reduction Cycle",steps:"Log waste → Agent analysis → Dashboard → Prep targets → Reports",expected:"Waste tracked and reduction recommendations generated",p:"P1"},
+      {id:"E2E-009",test:"Financial Health Monitoring",steps:"Daily P&L → Expenses → Forecast → Reports → Alerts",expected:"Complete financial picture with projections",p:"P1"},
+      {id:"E2E-010",test:"Cross-Product AI Intelligence",steps:"Run all agents → Cross-product results → High-risk stores → Weekly insights",expected:"AI connects patterns across all modules",p:"P2"},
+    ]
+  }
+];
+
+const STORAGE_KEY = 'vertex-autopilot-qa-v1';
+let testState = {};
+let allExpanded = false;
+let currentFilter = 'all';
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) testState = JSON.parse(saved);
+  } catch(e) {}
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(testState));
+}
+
+function render() {
+  const container = document.getElementById('test-container');
+  container.innerHTML = '';
+  const searchTerm = (document.getElementById('search-input').value || '').toLowerCase();
+
+  TEST_DATA.forEach((section, si) => {
+    const sectionDiv = document.createElement('div');
+    sectionDiv.className = 'section';
+
+    let visibleTests = section.tests.filter(t => {
+      const state = testState[t.id] || {};
+      const status = state.status || 'not-run';
+      const matchesFilter = currentFilter === 'all' || status === currentFilter;
+      const matchesSearch = !searchTerm || t.id.toLowerCase().includes(searchTerm) || t.test.toLowerCase().includes(searchTerm) || t.steps.toLowerCase().includes(searchTerm);
+      return matchesFilter && matchesSearch;
+    });
+
+    if (visibleTests.length === 0 && (currentFilter !== 'all' || searchTerm)) return;
+
+    const done = section.tests.filter(t => (testState[t.id]||{}).status && (testState[t.id]||{}).status !== 'not-run').length;
+    const total = section.tests.length;
+    const pct = total > 0 ? Math.round(done/total*100) : 0;
+
+    sectionDiv.innerHTML = `
+      <div class="section-header" onclick="toggleSection(${si})">
+        <h2>${section.icon} ${section.name} <span class="badge">${total} tests</span></h2>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <span class="progress">${done}/${total} (${pct}%)</span>
+        </div>
+      </div>
+      <div class="section-body ${allExpanded?'open':''}" id="section-${si}">
+        <table>
+          <tr><th style="width:80px">ID</th><th style="width:50px">P</th><th>Test</th><th>Steps</th><th>Expected</th><th style="width:120px">Status</th><th style="width:250px">Comments / Notes</th></tr>
+          ${visibleTests.map(t => {
+            const state = testState[t.id] || {};
+            const status = state.status || 'not-run';
+            const comment = state.comment || '';
+            return `<tr>
+              <td class="test-id">${t.id}</td>
+              <td><span class="priority ${t.p.toLowerCase()}">${t.p}</span></td>
+              <td><strong>${t.test}</strong></td>
+              <td style="color:#94A3B8;font-size:13px">${t.steps}</td>
+              <td style="color:#94A3B8;font-size:13px">${t.expected}</td>
+              <td class="status-cell">
+                <select class="status-select ${status}" onchange="setStatus('${t.id}',this.value,this)">
+                  <option value="not-run" ${status==='not-run'?'selected':''}>— Not Run</option>
+                  <option value="pass" ${status==='pass'?'selected':''}>✅ Pass</option>
+                  <option value="fail" ${status==='fail'?'selected':''}>❌ Fail</option>
+                  <option value="skip" ${status==='skip'?'selected':''}>⏭️ Skip</option>
+                  <option value="blocked" ${status==='blocked'?'selected':''}>🚫 Blocked</option>
+                </select>
+              </td>
+              <td><textarea class="comment-input" rows="1" placeholder="Add notes..." onchange="setComment('${t.id}',this.value)">${comment}</textarea></td>
+            </tr>`;
+          }).join('')}
+        </table>
+      </div>
+    `;
+    container.appendChild(sectionDiv);
+  });
+  updateStats();
+}
+
+function setStatus(id, value, el) {
+  if (!testState[id]) testState[id] = {};
+  testState[id].status = value;
+  el.className = 'status-select ' + value;
+  saveState();
+  updateStats();
+}
+
+function setComment(id, value) {
+  if (!testState[id]) testState[id] = {};
+  testState[id].comment = value;
+  saveState();
+}
+
+function toggleSection(idx) {
+  const body = document.getElementById('section-'+idx);
+  if (body) body.classList.toggle('open');
+}
+
+function toggleAll() {
+  allExpanded = !allExpanded;
+  document.querySelectorAll('.section-body').forEach(el => {
+    if (allExpanded) el.classList.add('open');
+    else el.classList.remove('open');
+  });
+}
+
+function updateStats() {
+  let total=0, pass=0, fail=0, skip=0, notrun=0;
+  TEST_DATA.forEach(s => s.tests.forEach(t => {
+    total++;
+    const st = (testState[t.id]||{}).status || 'not-run';
+    if (st==='pass') pass++;
+    else if (st==='fail') fail++;
+    else if (st==='skip'||st==='blocked') skip++;
+    else notrun++;
+  }));
+  document.getElementById('total-count').textContent = total;
+  document.getElementById('pass-count').textContent = pass;
+  document.getElementById('fail-count').textContent = fail;
+  document.getElementById('skip-count').textContent = skip;
+  document.getElementById('notrun-count').textContent = notrun;
+  const pct = total > 0 ? Math.round((pass+fail+skip)/(total)*100) : 0;
+  document.getElementById('overall-progress').style.width = pct+'%';
+  document.getElementById('progress-pct').textContent = pct+'% tested';
+}
+
+function filterTests(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  render();
+}
+
+function exportCSV() {
+  let csv = 'ID,Priority,Test,Steps,Expected,Status,Comments\n';
+  TEST_DATA.forEach(s => s.tests.forEach(t => {
+    const state = testState[t.id] || {};
+    const status = state.status || 'not-run';
+    const comment = (state.comment || '').replace(/"/g, '""');
+    csv += `"${t.id}","${t.p}","${t.test.replace(/"/g,'""')}","${t.steps.replace(/"/g,'""')}","${t.expected.replace(/"/g,'""')}","${status}","${comment}"\n`;
+  }));
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `vertex-autopilot-qa-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(testState,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `vertex-autopilot-qa-progress-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+}
+
+function resetAll() {
+  if (confirm('⚠️ Reset ALL test results? This cannot be undone.')) {
+    testState = {};
+    saveState();
+    render();
+  }
+}
+
+document.getElementById('search-input').addEventListener('input', () => render());
+
+loadState();
+render();
+</script>
+</body>
+</html>
