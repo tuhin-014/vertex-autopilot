@@ -13,14 +13,6 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("employees")
       .select("*, locations!inner(name)")
-      .is("status", null) // only active (status null = active)
-      .order("name");
-
-    // Also include explicitly active employees
-    // Use or filter: status is null OR status = 'active'
-    query = supabase
-      .from("employees")
-      .select("*, locations!inner(name)")
       .or("status.is.null,status.eq.active")
       .order("name");
 
