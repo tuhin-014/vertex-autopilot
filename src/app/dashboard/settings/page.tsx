@@ -136,18 +136,21 @@ export default function SettingsPage() {
             { name: "Resend Email", status: "connected", detail: "noreply@vertexlabsolutions.com" },
             { name: "Supabase", status: "connected", detail: "iatdvwzenpjrwwotlewg" },
             { name: "Open-Meteo Weather", status: "connected", detail: "Raleigh, NC" },
-            { name: "Indeed/ZipRecruiter", status: "planned", detail: "Job posting API — Phase 3" },
-            { name: "TRAY POS", status: "planned", detail: "Sales data — Phase 3" },
+            { name: "Indeed/ZipRecruiter", status: "coming_soon", detail: "Job posting API — awaiting API credentials" },
+            { name: "Google Calendar", status: "coming_soon", detail: "Interview scheduling — OAuth setup pending" },
+            { name: "TRAY POS", status: "coming_soon", detail: "Sales data — partner agreement in progress" },
           ].map((int, i) => (
             <div key={i} className="flex justify-between items-center py-2">
               <div>
                 <span className="text-sm font-medium text-gray-300">{int.name}</span>
                 <span className="text-xs text-gray-600 ml-2">{int.detail}</span>
               </div>
-              <span className={`text-xs px-2 py-1 rounded ${
-                int.status === "connected" ? "bg-green-600/10 text-green-400" : "bg-gray-700 text-gray-400"
+              <span className={`text-xs px-2 py-1 rounded font-medium ${
+                int.status === "connected" ? "bg-green-600/10 text-green-400" :
+                int.status === "coming_soon" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" :
+                "bg-gray-700 text-gray-400"
               }`}>
-                {int.status}
+                {int.status === "coming_soon" ? "Coming Soon" : int.status}
               </span>
             </div>
           ))}

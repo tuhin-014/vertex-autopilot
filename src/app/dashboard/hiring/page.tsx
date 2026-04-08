@@ -91,6 +91,31 @@ export default async function HiringPage() {
         ))}
       </div>
 
+      {/* Integration Status Banners */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-amber-600/10 border border-amber-600/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-bold px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full">COMING SOON</span>
+          </div>
+          <h3 className="text-sm font-semibold text-amber-300">Indeed / ZipRecruiter</h3>
+          <p className="text-xs text-gray-500 mt-1">Auto-post open positions to job boards. API integration in progress.</p>
+        </div>
+        <div className="bg-amber-600/10 border border-amber-600/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-bold px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full">COMING SOON</span>
+          </div>
+          <h3 className="text-sm font-semibold text-amber-300">Google Calendar</h3>
+          <p className="text-xs text-gray-500 mt-1">Auto-schedule interviews with top candidates. OAuth setup pending.</p>
+        </div>
+        <div className="bg-green-600/10 border border-green-600/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-bold px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full">LIVE</span>
+          </div>
+          <h3 className="text-sm font-semibold text-green-300">Text-to-Apply + AI Screening</h3>
+          <p className="text-xs text-gray-500 mt-1">Candidates text APPLY, AI scores them, top picks get interview SMS.</p>
+        </div>
+      </div>
+
       {/* Two columns: Staffing Health + Open Jobs */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Staffing Health */}
@@ -150,7 +175,10 @@ export default async function HiringPage() {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-sm">No open positions. Run &quot;Check Staffing&quot; to detect understaffed locations and auto-post jobs.</p>
+            <div className="text-gray-500 text-sm space-y-2">
+              <p>No open positions. Run &quot;Check Staffing&quot; to detect understaffed locations and auto-post jobs.</p>
+              <p className="text-xs text-amber-500/70">Indeed/ZipRecruiter integration coming soon — jobs currently post to internal board only.</p>
+            </div>
           )}
         </div>
       </div>
