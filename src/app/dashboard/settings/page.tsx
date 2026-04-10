@@ -132,13 +132,12 @@ export default function SettingsPage() {
         <h2 className="font-bold text-lg mb-4">🔌 Integrations</h2>
         <div className="space-y-3">
           {[
-            { name: "Twilio SMS", status: "connected", detail: "(478) 800-7647" },
+            { name: "Twilio SMS", status: "connected", detail: "Two-way SMS for staff + candidates" },
+            { name: "Twilio Voice", status: "connected", detail: "Inbound call handling" },
             { name: "Resend Email", status: "connected", detail: "noreply@vertexlabsolutions.com" },
-            { name: "Supabase", status: "connected", detail: "iatdvwzenpjrwwotlewg" },
-            { name: "Open-Meteo Weather", status: "connected", detail: "Raleigh, NC" },
-            { name: "Indeed/ZipRecruiter", status: "coming_soon", detail: "Job posting API — awaiting API credentials" },
-            { name: "Google Calendar", status: "coming_soon", detail: "Interview scheduling — OAuth setup pending" },
-            { name: "TRAY POS", status: "coming_soon", detail: "Sales data — partner agreement in progress" },
+            { name: "Supabase", status: "connected", detail: "Postgres + auth + storage" },
+            { name: "Stripe", status: "connected", detail: "Text-to-pay for phone orders" },
+            { name: "Open-Meteo Weather", status: "connected", detail: "Daily weather impact analysis" },
           ].map((int, i) => (
             <div key={i} className="flex justify-between items-center py-2">
               <div>
@@ -161,7 +160,7 @@ export default function SettingsPage() {
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <h2 className="font-bold text-lg mb-4">🚀 Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
-          <a href="/api/agents/run-all" target="_blank" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition">▶ Run All 14 Agents</a>
+          <a href="/api/agents/run-all" target="_blank" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition">▶ Run All 8 Agents</a>
           <a href="/api/demo/simulate" target="_blank" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition">🎬 Run Demo Simulation</a>
           <a href="/api/reports/regional" target="_blank" className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition">📄 Regional Report (PDF)</a>
           <a href="/api/cron/daily-summary" target="_blank" className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition">📧 Send Daily Summary</a>
