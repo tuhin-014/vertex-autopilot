@@ -1,178 +1,177 @@
-"use client";
+import { createServiceClient } from "@/lib/supabase/server";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+export const dynamic = "force-dynamic";
 
-interface Template {
+type ChecklistItem = { task: string; done: boolean; value?: string };
+type ChecklistRow = {
   id: string;
-  name: string;
-  type: string;
-  items: unknown[] | string;
-  deadline_minutes: number | null;
-}
-
-function countItems(items: unknown[] | string): number {
-  if (typeof items === 'string') {
-    try { return JSON.parse(items).length; } catch { return 0; }
-  }
-  if (Array.isArray(items)) return items.length;
-  return 0;
-}
-
-interface Completion {
-  id: string;
-  template_id: string;
-  completed_by: string;
-  shift_date: string;
-  shift_type: string;
-  status: string;
-  completion_pct: number;
-  started_at: string;
-  completed_at: string | null;
-  checklist_templates: { name: string; type: string } | null;
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  completed: "bg-green-500/20 text-green-400",
-  in_progress: "bg-blue-500/20 text-blue-400",
-  incomplete: "bg-red-500/20 text-red-400",
+  location_id: string;
+  checklist_type: string;
+  completed_by: string | null;
+  completed_at: string;
+  score: number | null;
+  items: ChecklistItem[] | string | null;
+  notes: string | null;
 };
 
-export default function ChecklistsPage() {
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [todayCompletions, setTodayCompletions] = useState<Completion[]>([]);
-  const [loading, setLoading] = useState(true);
+function parseItems(items: ChecklistItem[] | string | null): ChecklistItem[] {
+  if (!items) return [];
+  if (typeof items === "string") {
+    try { return JSON.parse(items); } catch { return []; }
+  }
+  return items;
+}
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/checklists/templates").then((r) => r.json()),
-      fetch("/api/checklists/history?days=1").then((r) => r.json()),
-    ]).then(([tpl, hist]) => {
-      setTemplates(tpl.templates || []);
-      setTodayCompletions(hist.completions || []);
-      setLoading(false);
-    });
-  }, []);
+const TYPE_LABELS: Record<string, string> = {
+  food_safety: "Food Safety",
+  opening: "Opening",
+  closing: "Closing",
+  cleaning: "Cleaning",
+};
 
-  const openingTemplates = templates.filter((t) => t.type === "opening");
-  const closingTemplates = templates.filter((t) => t.type === "closing");
+const TYPE_ICONS: Record<string, string> = {
+  food_safety: "🛡️",
+  opening: "🌅",
+  closing: "🌙",
+  cleaning: "🧹",
+};
 
-  const getCompletionForTemplate = (templateId: string) =>
-    todayCompletions.find((c) => c.template_id === templateId);
+export default async function ChecklistsPage() {
+  const supabase = createServiceClient();
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="text-gray-400 animate-pulse">Loading checklists...</div></div>;
+  const since24h = new Date(Date.now() - 24 * 3600000).toISOString();
+
+  const [locRes, clRes] = await Promise.all([
+    supabase.from("va_locations").select("id, name, city, state").order("name"),
+    supabase.from("va_checklists").select("*").gte("completed_at", since24h).order("completed_at", { ascending: false }),
+  ]);
+
+  const locations = locRes.data || [];
+  const checklists: ChecklistRow[] = clRes.data || [];
+
+  const allTypes = ["food_safety", "opening", "closing", "cleaning"];
+  const completedToday = checklists.length;
+  const expectedToday = locations.length * 2; // food_safety + opening per location
+  const completionRate = expectedToday > 0 ? Math.round((completedToday / expectedToday) * 100) : 0;
+
+  // Group by location for the "missing checklists" view
+  const locationStatus = locations.map((loc) => {
+    const locChecklists = checklists.filter((c) => c.location_id === loc.id);
+    const completed = new Set(locChecklists.map((c) => c.checklist_type));
+    const missing = allTypes.filter((t) => !completed.has(t));
+    return { location: loc, completed: locChecklists, missing };
+  });
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">✅ Checklists</h1>
-          <p className="text-gray-400">Today&apos;s opening &amp; closing status</p>
-        </div>
-        <div className="flex gap-3">
-          <Link href="/dashboard/checklists/start" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition">
-            ▶ Start Checklist
-          </Link>
-          <Link href="/dashboard/checklists/templates" className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition">
-            📋 Templates
-          </Link>
-          <Link href="/dashboard/checklists/history" className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition">
-            📊 History
-          </Link>
+          <h1 className="text-3xl font-bold">Checklists</h1>
+          <p className="text-gray-400">Compliance checklists across {locations.length} locations</p>
         </div>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-          <div className="text-3xl font-bold">{templates.length}</div>
-          <div className="text-sm text-gray-400 mt-1">Templates</div>
+          <div className="text-3xl font-bold">{locations.length}</div>
+          <div className="text-sm text-gray-400 mt-1">Locations</div>
         </div>
         <div className="bg-gray-900 border border-green-500/30 rounded-xl p-4 text-center">
-          <div className="text-3xl font-bold text-green-400">{todayCompletions.filter((c) => c.status === "completed").length}</div>
-          <div className="text-sm text-gray-400 mt-1">Completed Today</div>
+          <div className="text-3xl font-bold text-green-400">{completedToday}</div>
+          <div className="text-sm text-gray-400 mt-1">Completed (24h)</div>
         </div>
         <div className="bg-gray-900 border border-blue-500/30 rounded-xl p-4 text-center">
-          <div className="text-3xl font-bold text-blue-400">{todayCompletions.filter((c) => c.status === "in_progress").length}</div>
-          <div className="text-sm text-gray-400 mt-1">In Progress</div>
+          <div className="text-3xl font-bold text-blue-400">{completionRate}%</div>
+          <div className="text-sm text-gray-400 mt-1">Completion Rate</div>
         </div>
         <div className="bg-gray-900 border border-red-500/30 rounded-xl p-4 text-center">
-          <div className="text-3xl font-bold text-red-400">{templates.length - todayCompletions.length}</div>
-          <div className="text-sm text-gray-400 mt-1">Not Started</div>
+          <div className="text-3xl font-bold text-red-400">
+            {locationStatus.filter((l) => l.missing.includes("food_safety")).length}
+          </div>
+          <div className="text-sm text-gray-400 mt-1">Missing Food Safety</div>
         </div>
       </div>
 
-      {/* Opening checklists */}
+      {/* Location status grid */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-800">
-          <h2 className="font-semibold">🌅 Opening Checklists</h2>
+          <h2 className="font-semibold">Location Status (Last 24h)</h2>
         </div>
-        {openingTemplates.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">No opening templates configured</div>
+        {locationStatus.length === 0 ? (
+          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+            No locations yet. Visit <a href="/api/seed-demo" className="text-blue-400 underline">/api/seed-demo</a> to populate demo data.
+          </div>
         ) : (
           <div className="divide-y divide-gray-800">
-            {openingTemplates.map((tpl) => {
-              const completion = getCompletionForTemplate(tpl.id);
-              return (
-                <div key={tpl.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-800/30">
+            {locationStatus.map(({ location, completed, missing }) => (
+              <div key={location.id} className="px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
                   <div>
-                    <div className="font-medium">{tpl.name}</div>
-                    <div className="text-xs text-gray-500">{countItems(tpl.items)} items{tpl.deadline_minutes ? ` · ${tpl.deadline_minutes}min deadline` : ""}</div>
+                    <div className="font-medium">{location.name}</div>
+                    <div className="text-xs text-gray-500">{location.city}, {location.state}</div>
                   </div>
-                  {completion ? (
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <div className="text-xs text-gray-400">{completion.completed_by}</div>
-                        <div className="text-xs text-gray-500">{completion.completion_pct}% complete</div>
-                      </div>
-                      <Link href={`/dashboard/checklists/${completion.id}`}>
-                        <span className={`px-2 py-0.5 rounded text-xs ${STATUS_COLORS[completion.status] || "bg-gray-500/20 text-gray-400"}`}>
-                          {completion.status.replace(/_/g, " ")}
-                        </span>
-                      </Link>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-gray-500">Not started</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {missing.length === 0 ? (
+                      <span className="text-xs px-2 py-1 rounded bg-green-600/20 text-green-400">All complete</span>
+                    ) : (
+                      <span className="text-xs px-2 py-1 rounded bg-yellow-600/20 text-yellow-400">{missing.length} missing</span>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
+                <div className="flex flex-wrap gap-2">
+                  {allTypes.map((type) => {
+                    const cl = completed.find((c) => c.checklist_type === type);
+                    return (
+                      <div
+                        key={type}
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs ${
+                          cl
+                            ? "bg-green-600/10 border border-green-600/30 text-green-400"
+                            : "bg-gray-800 border border-gray-700 text-gray-500"
+                        }`}
+                      >
+                        <span>{TYPE_ICONS[type]}</span>
+                        <span>{TYPE_LABELS[type]}</span>
+                        {cl?.score !== null && cl?.score !== undefined && <span className="font-bold">{cl.score}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Closing checklists */}
+      {/* Recent completions */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-800">
-          <h2 className="font-semibold">🌙 Closing Checklists</h2>
+          <h2 className="font-semibold">Recent Completions</h2>
         </div>
-        {closingTemplates.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">No closing templates configured</div>
+        {checklists.length === 0 ? (
+          <div className="px-4 py-8 text-center text-gray-500 text-sm">No completions yet</div>
         ) : (
           <div className="divide-y divide-gray-800">
-            {closingTemplates.map((tpl) => {
-              const completion = getCompletionForTemplate(tpl.id);
+            {checklists.slice(0, 20).map((c) => {
+              const loc = locations.find((l) => l.id === c.location_id);
+              const items = parseItems(c.items);
+              const doneCount = items.filter((i) => i.done).length;
               return (
-                <div key={tpl.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-800/30">
-                  <div>
-                    <div className="font-medium">{tpl.name}</div>
-                    <div className="text-xs text-gray-500">{countItems(tpl.items)} items{tpl.deadline_minutes ? ` · ${tpl.deadline_minutes}min deadline` : ""}</div>
-                  </div>
-                  {completion ? (
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <div className="text-xs text-gray-400">{completion.completed_by}</div>
-                        <div className="text-xs text-gray-500">{completion.completion_pct}% complete</div>
+                <div key={c.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-800/30">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{TYPE_ICONS[c.checklist_type] || "✅"}</span>
+                    <div>
+                      <div className="font-medium text-sm">{TYPE_LABELS[c.checklist_type] || c.checklist_type} - {loc?.name || "Unknown location"}</div>
+                      <div className="text-xs text-gray-500">
+                        By {c.completed_by} - {new Date(c.completed_at).toLocaleString()}
                       </div>
-                      <Link href={`/dashboard/checklists/${completion.id}`}>
-                        <span className={`px-2 py-0.5 rounded text-xs ${STATUS_COLORS[completion.status] || "bg-gray-500/20 text-gray-400"}`}>
-                          {completion.status.replace(/_/g, " ")}
-                        </span>
-                      </Link>
                     </div>
-                  ) : (
-                    <span className="text-xs text-gray-500">Not started</span>
-                  )}
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-green-400">{c.score}/100</div>
+                    <div className="text-xs text-gray-500">{doneCount}/{items.length} items</div>
+                  </div>
                 </div>
               );
             })}

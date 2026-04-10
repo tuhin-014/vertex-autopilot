@@ -33,17 +33,17 @@ export default function Home() {
         <section className="flex flex-col items-center justify-center px-8 pt-20 pb-16 text-center">
           <div className="max-w-3xl mx-auto space-y-6">
             <div className="inline-flex items-center gap-2 bg-blue-600/10 border border-blue-600/30 rounded-full px-4 py-1.5 text-blue-400 text-sm">
-              AI-Powered Restaurant Operations
+              AI-Powered Restaurant Compliance & Operations
             </div>
 
             <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-              One Brain That Runs Your{" "}
-              <span className="text-blue-400">Restaurant Operations</span>
+              The Compliance Layer For Your{" "}
+              <span className="text-blue-400">Multi-Location Restaurant</span>
             </h1>
 
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              14 AI agents monitor food safety, hiring, staffing, inventory, spending, and revenue
-              across every location — 24/7. Autonomous action. Human oversight. Zero gaps.
+              Track food safety checklists, manage hiring, monitor training, log incidents, and
+              score location health — across every store, in one place.
             </p>
 
             <div className="flex items-center justify-center gap-4 pt-4">
@@ -97,10 +97,10 @@ export default function Home() {
         <section className="py-16 px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
             {[
-              { val: "14", label: "AI Agents" },
+              { val: "6", label: "Compliance Modules" },
               { val: "24/7", label: "Monitoring" },
               { val: "< 30s", label: "Alert Response" },
-              { val: "93%", label: "Cost Savings vs. Competitors" },
+              { val: "Real-time", label: "Health Scores" },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className="text-3xl font-bold text-blue-400">{s.val}</div>
@@ -110,22 +110,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Agent Cards */}
+        {/* Feature Cards */}
         <section id="features" className="py-16 px-8 bg-gray-900/30">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-4">AI Agents That Work For You</h2>
+            <h2 className="text-3xl font-bold text-center mb-4">What Vertex Autopilot Does</h2>
             <p className="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
-              Each agent autonomously handles a critical function across all your locations.
-              They coordinate with each other and escalate to you only when needed.
+              We are the AI compliance and operations layer for multi-location restaurants.
+              We don&apos;t replace your POS or scheduling software — we keep every store on track.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
-                { title: "Food Safety Autopilot", desc: "Missed temp log? SMS the cook. Cert expiring? Auto-enroll in training. Violation pattern? Risk alert to regional manager." },
-                { title: "Hiring Autopilot", desc: "Store understaffed? Auto-post jobs. Screen candidates with AI. Schedule interviews. Send offers. Start onboarding." },
-                { title: "Staffing Optimizer", desc: "Predict busy days from weather and events. Auto-adjust schedules. Alert when coverage drops below target." },
-                { title: "Spend Optimizer", desc: "Catch invoice overcharges, vendor price drift, and unnecessary purchases before they hit your P&L." },
-                { title: "Revenue Optimizer", desc: "Dynamic promotions based on weather, inventory levels, and local events. Maximize every revenue opportunity." },
-                { title: "Cross-Product Intelligence", desc: "Low reviews + staffing issues? Connected. High call volume? Hire kitchen staff. Insights no single system sees." },
+                { title: "Food Safety Monitoring", desc: "Daily food safety checklists, temperature logs, and inspection prep across every location." },
+                { title: "Training Management", desc: "Track ServSafe certs, allergen training, OSHA compliance, and renewal due dates for every employee." },
+                { title: "Hiring Pipeline", desc: "Capture applicants, AI-screen them, track them through interview, offer, and onboarding stages." },
+                { title: "Multi-Location Health Scores", desc: "Real-time health score per location based on compliance data. Spot problems before they escalate." },
+                { title: "Incident Tracking", desc: "Log food safety, customer, employee, and equipment incidents. Track from open to resolved with full audit trail." },
+                { title: "Area Manager Alerts", desc: "Automatic alerts when locations fall behind on checklists, temps go out of range, or training becomes overdue." },
               ].map((agent) => (
                 <div
                   key={agent.title}
@@ -263,8 +263,8 @@ export default function Home() {
                 </div>
                 <ul className="space-y-2 text-sm text-gray-300 mb-6">
                   <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Everything in Growth</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> All 14 AI Agents</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Cross-Product Intelligence</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> All Compliance Modules</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Incident Tracking</li>
                   <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Priority Support</li>
                 </ul>
                 <Link href="/pricing" className="block w-full py-2.5 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium text-sm text-center transition">
