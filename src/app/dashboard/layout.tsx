@@ -69,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
             <span className="text-green-400">14 agents active</span>
           </div>
-          Vertex Lab Solutions © 2026
+          VertexLab Solutions LLC © 2026
         </div>
       </aside>
 

@@ -58,20 +58,32 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-bold text-white">5. Data Retention</h2>
-            <p>We retain your data for as long as your account is active. You may request deletion of your data at any time by contacting us at sales@vertexlabsolutions.com.</p>
+            <p>We retain your data for as long as your account is active. You may request deletion of your data at any time by contacting us at vertexlabsolutions@gmail.com.</p>
           </section>
 
           <section>
             <h2 className="text-xl font-bold text-white">6. Your Rights</h2>
-            <p>You have the right to access, correct, or delete your personal data. Contact us at sales@vertexlabsolutions.com for any data requests.</p>
+            <p>You have the right to access, correct, or delete your personal data. Contact us at vertexlabsolutions@gmail.com for any data requests.</p>
           </section>
 
           <section>
             <h2 className="text-xl font-bold text-white">7. Contact</h2>
-            <p>Vertex Lab Solutions<br />Email: sales@vertexlabsolutions.com<br />Website: vertexlabsolutions.com</p>
+            <p>VertexLab Solutions LLC<br />Email: vertexlabsolutions@gmail.com<br />Website: vertexlabsolutions.com</p>
           </section>
         </div>
       </main>
+
+      <footer className="border-t border-gray-800 px-8 py-8">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-gray-500 text-sm">
+            &copy; 2026 VertexLab Solutions LLC. All rights reserved.
+          </div>
+          <div className="flex items-center gap-6 text-sm">
+            <Link href="/privacy" className="text-gray-500 hover:text-gray-300 transition">Privacy Policy</Link>
+            <Link href="/terms" className="text-gray-500 hover:text-gray-300 transition">Terms</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
