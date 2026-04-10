@@ -4,9 +4,9 @@ const STRIPE_KEY = process.env.STRIPE_SECRET_KEY!;
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://vertex-autopilot.vercel.app";
 
 const PLANS: Record<string, { priceId: string; name: string }> = {
-  starter: { priceId: "price_starter_199", name: "Vertex Autopilot Starter" },
-  growth: { priceId: "price_growth_399", name: "Vertex Autopilot Growth" },
-  enterprise: { priceId: "price_enterprise_799", name: "Vertex Autopilot Enterprise" },
+  starter: { priceId: "price_1TKVDbHbNZW1WszzLHu7yvHI", name: "Vertex Autopilot Starter" },
+  growth: { priceId: "price_1TKVDcHbNZW1WszzfLH3Oja5", name: "Vertex Autopilot Growth" },
+  enterprise: { priceId: "price_1TKVDdHbNZW1WszzFM0I7SJq", name: "Vertex Autopilot Enterprise" },
 };
 
 export async function POST(request: Request) {
